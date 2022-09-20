@@ -84,11 +84,13 @@ class AppButtons:
     def get_surpac_import_data(cls, user_data=False):
         imported_data = SurPy.SurpacDataHandler()
         imported_data.read_str_file(dpg.get_value('file_name_input'), dpg.get_value('string_number'))
-        # imported_data.show_points()
-        print()
         imported_data.get_line_coordinates()
-        # imported_data.print_all_string_coordinates()
-        # string_test = imported_data.get_2d_coords_for_single_sting(int(dpg.get_value('string_number')))
+        imported_data.print_all_string_coordinates()
+        cleared_imported_string = imported_data.get_2d_coords_for_single_sting(int(dpg.get_value('string_number')))
+        # TODO set up a multi-string import. In case number is '' it should iterate and draw all strings
+
+        SurPy.SurpacDataHandler.drawing_depending_on_string_type(
+                cleared_imported_string, dpg.get_value('color_picker'), float(dpg.get_value('string_width_slider')))
         dpg.delete_item('file_dialog_id')
         dpg.delete_item('surpac_import_window')
 

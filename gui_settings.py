@@ -24,5 +24,6 @@ class Settings:
                 dpg.add_theme_color(dpg.mvThemeCol_TabActive, [200, 100, 20])
                 dpg.add_theme_color(dpg.mvThemeCol_TableRowBg, [20, 20, 200])
                 dpg.add_theme_color(dpg.mvThemeCol_FrameBg, [150, 150, 200])
+                # dpg.add_theme_color(dpg.mvNodeCol_NodeOutline, [5, 150, 200])
 
         dpg.bind_theme(self.global_theme)

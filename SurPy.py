@@ -20,13 +20,11 @@ class SurpacDataHandler:
                 # TODO: Delete \n object in the end of lists
         elif stringNum.isdigit():
             for line in strFileDataList:
-                if line[0] == stringNum:
+                if line[0] == stringNum or line[0] == '0':
                     self.__points.append(line.split(', '))
         else:
             print('No points to import, or error occurred')
             # TODO: Create an exception
-
-
 
     # Getter of the all points from string file, including zeroes
     def show_points(self):
@@ -65,12 +63,12 @@ class SurpacDataHandler:
         return stringCoordsList  # Format: [[float_x, float_y], [float_x, float_y]...]
 
     @staticmethod
-    def drawing_depending_on_string_type(string, color, thickness):
+    def drawing_depending_on_string_type(string, color, thickness, layer='base_layer'):
         """Checks if string consists of several segment and for each type
         launches its own draw_polyline DPG function"""
 
         if [0.0, 0.0] not in string:  # Checking if single-segment polyline
-            dpg.draw_polyline(string, color=color, thickness=thickness)
+            dpg.draw_polyline(string, color=color, thickness=thickness, parent=layer)
 
         else:  # Checking if multi-segment string 
             segmentCoords = []
@@ -78,9 +76,9 @@ class SurpacDataHandler:
                 if point != [0.0, 0.0]:
                     segmentCoords.append(point)
                 else:
-                    dpg.draw_polyline(segmentCoords, color=color, thickness=thickness)
+                    dpg.draw_polyline(segmentCoords, color=color, thickness=thickness, parent=layer)
                     segmentCoords = []
-            dpg.draw_polyline(segmentCoords, color=color, thickness=thickness)
+            dpg.draw_polyline(segmentCoords, color=color, thickness=thickness, parent=layer)
 
 
 

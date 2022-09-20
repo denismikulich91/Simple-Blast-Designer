@@ -22,9 +22,9 @@ class Window:
                 import_surpac_button.set_callback(AppButtons.import_from_surpac)
                 import_csv_button = AppButtons('Import from CSV')
                 draw_button = AppButtons('Draw a block')
-            with dpg.drawlist(width=1000, height=730):
+            with dpg.drawlist(width=1400, height=700):
                 with dpg.draw_layer(tag="canvas"):
-                    with dpg.draw_node(tag='base_layer', show=True):
+                    with dpg.draw_node(parent='canvas', tag='base_layer'):
                         pass
 
     def zoom(self, sender, app_data):
@@ -53,7 +53,6 @@ class Window:
     def choose_color(self, sender, app_data):
         self.color = [int(i * 255) for i in app_data[:-1]]
 
-
 my_window = Window("Tutorial", 'main_window')
 
 with dpg.handler_registry():
@@ -61,7 +60,7 @@ with dpg.handler_registry():
     dpg.add_mouse_drag_handler(callback=my_window.move)
     dpg.add_mouse_double_click_handler(button=2, callback=my_window.restore_screen_view)
 
-dpg.create_viewport(title='Simple Blast Designer', width=1000, height=800, x_pos=20, y_pos=20)
+dpg.create_viewport(title='Simple Blast Designer', width=1500, height=800, x_pos=20, y_pos=20)
 dpg.setup_dearpygui()
 dpg.show_viewport()
 dpg.set_primary_window("main_window", True)
