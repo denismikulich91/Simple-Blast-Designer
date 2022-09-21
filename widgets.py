@@ -1,6 +1,5 @@
 import dearpygui.dearpygui as dpg
 import SurPy
-from gui_settings import Settings
 
 
 class ImportSettings:
@@ -8,7 +7,7 @@ class ImportSettings:
         self.sketch_color = [255, 255, 255]
         self.sketch_line_type = 'Solid'
         self.sketch_line_width = 1
-        self.sketchCoordinates = [[10, 40], [25, 60], [100, 80], [200, 30], [150, 15], [10, 40]]
+        self.sketchCoordinates = [[10, 40], [25, 60], [100, 80], [190, 30], [150, 15], [10, 40]]
         self.label = label
         self.tag = tag
 
@@ -45,12 +44,12 @@ class ImportSettings:
                     dpg.add_radio_button(items=['Solid', 'Dashed', 'Dotted', 'DashDotted'], horizontal=False,
                                          tag='sketch_line_type', default_value='Solid')
                 dpg.add_color_picker(no_small_preview=True, no_inputs=True, no_side_preview=True, width=150,
-                                     display_rgb=True, tag='color_picker', callback=self.update_sketch_polygon)
+                                     display_rgb=True, tag='color_picker', callback=self.update_sketch_polygon, default_value=[255, 255, 255])
                 with dpg.group():
                     with dpg.drawlist(width=300, height=100, tag='sketch_list'):
                         dpg.draw_polygon(self.sketchCoordinates, color=self.sketch_color,
                                          thickness=self.sketch_line_width, tag='sketch_polygon')
-                        dpg.draw_text([150, 80], 'sketch', size=20)
+                        dpg.draw_text([140, 80], 'sketch', size=20)
 
             with dpg.group():
                 with dpg.group(horizontal=True):
@@ -79,14 +78,13 @@ class ImportSettingsCSV(ImportSettings):
                 dpg.add_input_text(width=300, default_value='', tag='file_name_input')
                 dpg.add_button(callback=lambda: dpg.show_item("file_dialog_id"), label='Choose file', width=-1)
             with dpg.group(horizontal=True):
-                with dpg.group():
-                    dpg.add_text('Enter string column name')
-                    dpg.add_combo(['Choose file first'], width=150, tag='csv_string_column')
-
-                # with dpg.group():
-                    dpg.add_text('Enter segment column name')
-                    dpg.add_combo(['Choose file first'], width=150, tag='csv_segment_column')
-
+                dpg.add_combo(['Choose file first'], width=230, tag='csv_string_column')
+                dpg.add_input_text(width=55, tag='csv_string_number', default_value='')
+                dpg.add_text('String column name')
+            with dpg.group(horizontal=True):
+                dpg.add_combo(['Choose file first'], width=230, tag='csv_segment_column')
+                dpg.add_input_text(width=55, tag='csv_segment_number')
+                dpg.add_text('Segment column name')
             with dpg.group(horizontal=True):
                 dpg.add_combo(['Choose file first'], width=300, tag='csv_x_column')
                 dpg.add_text('X coordinate')
@@ -113,7 +111,7 @@ class AppButtons:
     def import_from_csv():
         csv_import_window = ImportSettingsCSV('Import from CSV', 'csv_import_window')
         ImportSettings.create_file_dialog('csv')
-        csv_import_window.create_main_import_window(AppButtons.get_surpac_import_data)
+        csv_import_window.create_main_import_window(AppButtons.get_csv_import_data)
         csv_import_window.add_specific_data_to_window()
 
     @staticmethod
@@ -132,7 +130,7 @@ class AppButtons:
             dpg.configure_item(tag, items=csv_header_list)
 
     @classmethod
-    def get_surpac_import_data(cls, user_data=False):
+    def get_surpac_import_data(cls):
         imported_data = SurPy.SurpacDataHandler()
         imported_data.read_str_file(dpg.get_value('file_name_input'), dpg.get_value('string_number'))
         imported_data.get_line_coordinates()
@@ -144,6 +142,20 @@ class AppButtons:
                 cleared_imported_string, dpg.get_value('color_picker'), float(dpg.get_value('string_width_slider')))
         dpg.delete_item('file_dialog_id')
         dpg.delete_item('surpac_import_window')
+
+    @classmethod
+    def get_csv_import_data(cls):
+        imported_csv_data = SurPy.CsvDataHandler(dpg.get_value('csv_string_column'), dpg.get_value('csv_string_number'))
+        imported_csv_data.read_csv_file(dpg.get_value('file_name_input'))
+        # imported_csv_data.show_points()
+        imported_csv_data.get_line_coordinates()
+        cleared_imported_string = imported_csv_data.get_2d_coords_for_single_sting(int(dpg.get_value('csv_string_number')))
+
+        SurPy.SurpacDataHandler.drawing_depending_on_string_type(
+                cleared_imported_string, dpg.get_value('color_picker'), float(dpg.get_value('string_width_slider')))
+
+        dpg.delete_item('file_dialog_id')
+        dpg.delete_item('csv_import_window')
 
 
 
