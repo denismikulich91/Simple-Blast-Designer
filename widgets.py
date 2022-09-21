@@ -3,7 +3,7 @@ import SurPy
 from gui_settings import Settings
 
 
-class ImportSettings
+class ImportSettings:
     def __init__(self, label, tag):
         self.sketch_color = [255, 255, 255]
         self.sketch_line_type = 'Solid'
@@ -35,7 +35,7 @@ class ImportSettings
                 dpg.add_text('Enter segment number')
 
     def create_main_import_window(self, function_on_ok):
-        with dpg.window(label=self.label, width=500, height=-1, pos=(300, 300), tag=self.tag):
+        with dpg.window(label=self.label, width=500, height=-1, pos=(400, 150), tag=self.tag):
             with dpg.group(horizontal=True, tag='group'):
                 dpg.add_slider_int(min_value=1, max_value=10, width=300, callback=self.update_sketch_polygon,
                                    tag='string_width_slider')
@@ -54,17 +54,11 @@ class ImportSettings
 
             with dpg.group():
                 with dpg.group(horizontal=True):
-                    with dpg.group():
-                        dpg.add_text('Color: ')
-                        dpg.add_text('Line style: ')
-                        dpg.add_text('Line width: ')
-
-                with dpg.group(horizontal=True):
                     dpg.add_button(label='Default values', width=240)
                     dpg.add_button(label='Save as default', width=-1)
                 with dpg.group(horizontal=True):
                     dpg.add_button(label='OK', width=240, callback=function_on_ok)
-                    dpg.add_button(label='Cancel', width=-1)
+                    dpg.add_button(label='Cancel', width=-1, callback=AppButtons.click_cancel, user_data=self.tag)
 
     def update_sketch_polygon(self):
         dpg.delete_item('sketch_polygon')
@@ -85,11 +79,14 @@ class ImportSettingsCSV(ImportSettings):
                 dpg.add_input_text(width=300, default_value='', tag='file_name_input')
                 dpg.add_button(callback=lambda: dpg.show_item("file_dialog_id"), label='Choose file', width=-1)
             with dpg.group(horizontal=True):
-                dpg.add_combo(['Choose file first'], width=300, tag='csv_string_column')
-                dpg.add_text('Enter string column name')
-            with dpg.group(horizontal=True):
-                dpg.add_combo(['Choose file first'], width=300, tag='csv_segment_column')
-                dpg.add_text('Enter segment column name')
+                with dpg.group():
+                    dpg.add_text('Enter string column name')
+                    dpg.add_combo(['Choose file first'], width=150, tag='csv_string_column')
+
+                # with dpg.group():
+                    dpg.add_text('Enter segment column name')
+                    dpg.add_combo(['Choose file first'], width=150, tag='csv_segment_column')
+
             with dpg.group(horizontal=True):
                 dpg.add_combo(['Choose file first'], width=300, tag='csv_x_column')
                 dpg.add_text('X coordinate')
@@ -118,6 +115,12 @@ class AppButtons:
         ImportSettings.create_file_dialog('csv')
         csv_import_window.create_main_import_window(AppButtons.get_surpac_import_data)
         csv_import_window.add_specific_data_to_window()
+
+    @staticmethod
+    def click_cancel(sender, app_data, user_data):
+        dpg.delete_item(user_data)
+        dpg.delete_item('file_dialog_id')
+
 
     @staticmethod
     def get_file_name(sender, app_data):
