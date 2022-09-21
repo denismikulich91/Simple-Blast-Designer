@@ -82,6 +82,11 @@ class SurpacDataHandler:
 
 
 
+class CsvDataHandler(SurpacDataHandler):
+    def __init__(self):
+        super().__init__()
+
+
 
 
 
