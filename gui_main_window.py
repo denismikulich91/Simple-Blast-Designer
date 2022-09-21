@@ -21,6 +21,7 @@ class Window:
                 import_surpac_button = AppButtons('Import from Surpac')
                 import_surpac_button.set_callback(AppButtons.import_from_surpac)
                 import_csv_button = AppButtons('Import from CSV')
+                import_csv_button.set_callback(AppButtons.import_from_csv)
                 draw_button = AppButtons('Draw a block')
             with dpg.drawlist(width=1400, height=700):
                 with dpg.draw_layer(tag="canvas"):
