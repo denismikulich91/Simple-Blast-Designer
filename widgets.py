@@ -3,7 +3,7 @@ import SurPy
 from gui_settings import Settings
 
 
-class ImportSettings:
+class ImportSettings
     def __init__(self, label, tag):
         self.sketch_color = [255, 255, 255]
         self.sketch_line_type = 'Solid'
