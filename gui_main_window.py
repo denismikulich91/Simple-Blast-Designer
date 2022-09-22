@@ -44,7 +44,7 @@ class Window:
     def update_canvas(self):
         self.scale = dpg.create_scale_matrix([my_window.axis_scale, my_window.axis_scale, my_window.axis_scale])
         self.translation = dpg.create_translation_matrix(my_window.translationCoordinates)
-        dpg.apply_transform("base_layer", self.translation * self.scale)
+        dpg.apply_transform("base_layer", self.translation * self.scale * self.rotation)
 
     def restore_screen_view(self):
         self.axis_scale = 1
