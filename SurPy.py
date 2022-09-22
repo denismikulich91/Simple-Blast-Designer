@@ -54,13 +54,21 @@ class SurpacDataHandler:
             for i in value:
                 print(i)
 
-    def get_2d_coords_for_single_sting(self, stringNumber: int) -> list[list[float]]:
+    def get_2d_coords_for_single_sting(self, stringNumber: str):
         """Returns list of lists of coordinates of the chosen string
         however strings which consists of several segments are just split with zeroes
         correct segment drawing must be released in drawing function"""
-        stringCoordsList = [[float(x) for x in coords[0:2]]
-                            for coords in self.__allStringCoords[stringNumber][:-1]]
-        return stringCoordsList  # Format: [[float_x, float_y], [float_x, float_y]...]
+        if stringNumber.isdigit():
+            stringCoordsList = [[float(x) for x in coords[0:2]]
+                                for coords in self.__allStringCoords[int(stringNumber)][:-1]]
+            return stringCoordsList  # Format: [[float_x, float_y], [float_x, float_y]...]
+        elif stringNumber == '':
+            stringCoordsList = [[[float(x) for x in coords[0:2]]
+                                for coords in self.__allStringCoords[key][:-1]]
+                                for key in self.__allStringCoords.keys()]
+
+            return stringCoordsList
+
 
     @staticmethod
     def drawing_depending_on_string_type(string, color, thickness, layer='base_layer'):
@@ -120,7 +128,7 @@ class CsvDataHandler(SurpacDataHandler):
         singleStringCoords = []
         """Creates a dict with string number as a key
         and XYZ coords as a list of list of values (list[list[float]])"""
-        for line in self.__points[2:-1]:
+        for line in self.__points[1:]:
             if int(line[self.string_num_index]) not in self.__allStringCoords.keys():
                 singleStringCoords = []
                 singleStringCoords.append(line[2:])

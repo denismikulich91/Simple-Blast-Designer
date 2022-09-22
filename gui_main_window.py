@@ -23,6 +23,7 @@ class Window:
                 import_csv_button = AppButtons('Import from CSV')
                 import_csv_button.set_callback(AppButtons.import_from_csv)
                 draw_button = AppButtons('Draw a block')
+                clear_canvas_button = AppButtons('Clear Canvas')
             with dpg.drawlist(width=1400, height=700):
                 with dpg.draw_layer(tag="canvas"):
                     with dpg.draw_node(parent='canvas', tag='base_layer'):
@@ -54,7 +55,9 @@ class Window:
     def choose_color(self, sender, app_data):
         self.color = [int(i * 255) for i in app_data[:-1]]
 
+
 my_window = Window("Tutorial", 'main_window')
+my_window.update_canvas()
 
 with dpg.handler_registry():
     dpg.add_mouse_wheel_handler(callback=my_window.zoom)
@@ -68,5 +71,16 @@ dpg.set_primary_window("main_window", True)
 settings_set_1 = Settings()
 dpg.bind_theme(settings_set_1.global_theme)
 # dpg.show_debug()
+# dpg.show_style_editor()
+# import dearpygui.demo as demo
+# demo.show_demo()
 dpg.start_dearpygui()
 dpg.destroy_context()
+
+# TODO: 1. Check localization problems
+# TODO: 2. Find out how to change file dialog style settings
+# TODO: 3. Fix physics in the Canvas in translation
+# TODO: 4. Add functionality for importing segments separately (str, csv)
+# TODO: 5. Prepare icons
+# TODO: 6. Transfer all visualized data into Window class as dictionary
+

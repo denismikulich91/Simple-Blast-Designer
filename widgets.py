@@ -7,14 +7,14 @@ class ImportSettings:
         self.sketch_color = [255, 255, 255]
         self.sketch_line_type = 'Solid'
         self.sketch_line_width = 1
-        self.sketchCoordinates = [[10, 40], [25, 60], [100, 80], [190, 30], [150, 15], [10, 40]]
+        self.sketchCoordinates = [[10, 40], [25, 60], [100, 80], [180, 30], [150, 15], [10, 40]]
         self.label = label
         self.tag = tag
 
     @staticmethod
     def create_file_dialog(data_type):
         with dpg.file_dialog(directory_selector=False, tag="file_dialog_id", show=False,
-                             callback=AppButtons.get_file_name, height=300, modal=True):
+                             callback=AppButtons.get_file_name, user_data=data_type, height=300, modal=True):
             if data_type == 'surpac':
                 dpg.add_file_extension(".str", color=(0, 255, 255, 255))
                 dpg.add_file_extension(".sdm", color=(0, 255, 255, 255))
@@ -27,7 +27,7 @@ class ImportSettings:
                 dpg.add_input_text(width=300, default_value='', tag='file_name_input')
                 dpg.add_button(callback=lambda: dpg.show_item("file_dialog_id"), label='Choose file', width=-1)
             with dpg.group(horizontal=True):
-                dpg.add_input_text(width=300, tag='string_number')
+                dpg.add_input_text(width=300, tag='string_number', default_value='')
                 dpg.add_text('Enter string number')
             with dpg.group(horizontal=True):
                 dpg.add_input_text(width=300)
@@ -49,7 +49,7 @@ class ImportSettings:
                     with dpg.drawlist(width=300, height=100, tag='sketch_list'):
                         dpg.draw_polygon(self.sketchCoordinates, color=self.sketch_color,
                                          thickness=self.sketch_line_width, tag='sketch_polygon')
-                        dpg.draw_text([140, 80], 'sketch', size=20)
+                        dpg.draw_text([125, 70], 'sketch', size=20)
 
             with dpg.group():
                 with dpg.group(horizontal=True):
@@ -121,13 +121,14 @@ class AppButtons:
 
 
     @staticmethod
-    def get_file_name(sender, app_data):
+    def get_file_name(sender, app_data, user_data):
         dpg.configure_item('file_name_input', default_value=app_data['file_path_name'])
-        with open(app_data['file_path_name'], encoding="utf-8") as csvFile:
-            csvFileDataList = csvFile.readlines()
-        csv_header_list = csvFileDataList[0].split(', ')
-        for tag in ['csv_string_column', 'csv_segment_column', 'csv_x_column', 'csv_y_column']:
-            dpg.configure_item(tag, items=csv_header_list)
+        if user_data == 'csv':
+            with open(app_data['file_path_name'], encoding="utf-8") as importedFile:
+                FileDataList = importedFile.readlines()
+            csv_header_list = FileDataList[0].split(', ')
+            for tag in ['csv_string_column', 'csv_segment_column', 'csv_x_column', 'csv_y_column']:
+                dpg.configure_item(tag, items=csv_header_list)
 
     @classmethod
     def get_surpac_import_data(cls):
@@ -135,11 +136,17 @@ class AppButtons:
         imported_data.read_str_file(dpg.get_value('file_name_input'), dpg.get_value('string_number'))
         imported_data.get_line_coordinates()
         # imported_data.print_all_string_coordinates()
-        cleared_imported_string = imported_data.get_2d_coords_for_single_sting(int(dpg.get_value('string_number')))
-        # TODO set up a multi-string import. In case number is '' it should iterate and draw all strings
+        cleared_imported_string = imported_data.get_2d_coords_for_single_sting(dpg.get_value('string_number'))
 
-        SurPy.SurpacDataHandler.drawing_depending_on_string_type(
-                cleared_imported_string, dpg.get_value('color_picker'), float(dpg.get_value('string_width_slider')))
+        if dpg.get_value('string_number') == '':
+            for str_string in cleared_imported_string:
+                SurPy.SurpacDataHandler.drawing_depending_on_string_type(str_string,
+                    dpg.get_value('color_picker'), float(dpg.get_value('string_width_slider')))
+        elif dpg.get_value('string_number').isdigit():
+            SurPy.SurpacDataHandler.drawing_depending_on_string_type(cleared_imported_string,
+                                                                     dpg.get_value('color_picker'),
+                                                                     float(dpg.get_value('string_width_slider')))
+
         dpg.delete_item('file_dialog_id')
         dpg.delete_item('surpac_import_window')
 
@@ -147,7 +154,7 @@ class AppButtons:
     def get_csv_import_data(cls):
         imported_csv_data = SurPy.CsvDataHandler(dpg.get_value('csv_string_column'), dpg.get_value('csv_string_number'))
         imported_csv_data.read_csv_file(dpg.get_value('file_name_input'))
-        # imported_csv_data.show_points()
+        imported_csv_data.show_points()
         imported_csv_data.get_line_coordinates()
         cleared_imported_string = imported_csv_data.get_2d_coords_for_single_sting(int(dpg.get_value('csv_string_number')))
 
