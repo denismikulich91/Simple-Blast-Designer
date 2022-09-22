@@ -79,12 +79,11 @@ class ImportSettingsCSV(ImportSettings):
                 dpg.add_combo(['Choose file first'], width=230, tag='csv_string_column')
                 dpg.add_input_text(width=55, tag='csv_string_number', default_value='')
                 dpg.add_text('Line ID name')
-
             with dpg.group(horizontal=True):
-                dpg.add_combo(['Choose file first'], width=300, tag='csv_x_column')
+                dpg.add_combo(['Choose file first'], width=300, tag='csv_x_field')
                 dpg.add_text('X coordinate')
             with dpg.group(horizontal=True):
-                dpg.add_combo(['Choose file first'], width=300, tag='csv_y_column')
+                dpg.add_combo(['Choose file first'], width=300, tag='csv_y_field')
                 dpg.add_text('Y Coordinate')
 
 
@@ -121,7 +120,7 @@ class AppButtons:
             with open(app_data['file_path_name'], encoding="utf-8") as importedFile:
                 FileDataList = importedFile.readlines()
             csv_header_list = FileDataList[0].split(', ')
-            for tag in ['csv_string_column', 'csv_x_column', 'csv_y_column']:
+            for tag in ['csv_string_column', 'csv_x_field', 'csv_y_field']:
                 dpg.configure_item(tag, items=csv_header_list)
 
     @classmethod
@@ -146,10 +145,11 @@ class AppButtons:
 
     @classmethod
     def get_csv_import_data(cls):
-        imported_csv_data = CsvDataHandler()
-        imported_csv_data.import_csv_data(dpg.get_value('file_name_input'),
-                                          dpg.get_value('csv_string_column'),
-                                          dpg.get_value('csv_string_number'))
+        imported_csv_data = CsvDataHandler(dpg.get_value('file_name_input'), dpg.get_value('csv_string_number'))
+
+        imported_csv_data.import_csv_data(dpg.get_value('csv_x_field'),
+                                          dpg.get_value('csv_y_field'))
+        imported_csv_data.get_data()
 
         # imported_csv_data.read_csv_file(dpg.get_value('file_name_input'))
         # imported_csv_data.show_points()
@@ -161,7 +161,7 @@ class AppButtons:
         #         SurPy.SurpacDataHandler.drawing_depending_on_string_type(str_string,
         #             dpg.get_value('color_picker'), float(dpg.get_value('string_width_slider')))
         # elif dpg.get_value('csv_string_number').isdigit():
-        #     SurPy.SurpacDataHandler.drawing_depending_on_string_type(cleared_imported_string,
+        # SurPy.SurpacDataHandler.drawing_depending_on_string_type(imported_csv_data.get_data(dpg.get_value('csv_string_number')),
         #                                                              dpg.get_value('color_picker'),
         #                                                              float(dpg.get_value('string_width_slider')))
         dpg.delete_item('file_dialog_id')
