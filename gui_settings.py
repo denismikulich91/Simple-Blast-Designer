@@ -22,7 +22,6 @@ class Settings:
                 dpg.add_theme_color(dpg.mvThemeCol_FrameBg, [110, 120, 110])
                 dpg.add_theme_color(dpg.mvThemeCol_Text, [230, 230, 230])
                 dpg.add_theme_color(dpg.mvThemeCol_Button, [200, 100, 20])
-                dpg.add_theme_color(dpg.mvThemeCol_ButtonHovered, [100, 150, 200])  #100, 150, 200
-
+                dpg.add_theme_color(dpg.mvThemeCol_ButtonHovered, [100, 150, 200])  # 100, 150, 200
 
         dpg.bind_theme(self.global_theme)

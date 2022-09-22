@@ -17,7 +17,6 @@ class SurpacDataHandler:
         if stringNum == '':
             for line in strFileDataList:
                 self.__points.append(line.split(', '))
-                # TODO: Delete \n object in the end of lists
         elif stringNum.isdigit():
             for line in strFileDataList:
                 if line[0] == stringNum or line[0] == '0':
@@ -69,7 +68,6 @@ class SurpacDataHandler:
 
             return stringCoordsList
 
-
     @staticmethod
     def drawing_depending_on_string_type(string, color, thickness, layer='base_layer'):
         """Checks if string consists of several segment and for each type
@@ -89,61 +87,84 @@ class SurpacDataHandler:
             dpg.draw_polyline(segmentCoords, color=color, thickness=thickness, parent=layer)
 
 
-
-class CsvDataHandler(SurpacDataHandler):
-    def __init__(self, string_num_field, stringNum):
-        super().__init__()
-        self.string_num_index = None
-        self.__points = []
-        self.__allStringCoords = dict()
-        self.string_num_field = string_num_field
-        self.stringNum = stringNum
-
-    def read_csv_file(self, fileName: str) -> None:
-        """
-        This function reads .csv file all at once, splitting
-        into list items by comma and returns data to __points value
-        """
-        with open(fileName, encoding="utf-8") as csvFile:
-            strFileDataList = csvFile.readlines()
-        self.string_num_index = strFileDataList[0].split(', ').index(self.string_num_field)
-        if self.stringNum == '':
-            for line in strFileDataList:
-                self.__points.append(line.split(', '))
-
-        elif self.stringNum.isdigit():
-            for line in strFileDataList:
-                if line.split(', ')[self.string_num_index] == self.stringNum:
-                    self.__points.append(line.split(', '))
-        else:
-            print('No points to import, or error occurred')
-            # TODO: Create an exception
-
-    # Getter of the all points from string file, including zeroes
-    def show_points(self):
-        for line in self.__points:
-            print(line)
-
-    def get_line_coordinates(self) -> dict:
-        singleStringCoords = []
-        """Creates a dict with string number as a key
-        and XYZ coords as a list of list of values (list[list[float]])"""
-        for line in self.__points[1:]:
-            if int(line[self.string_num_index]) not in self.__allStringCoords.keys():
-                singleStringCoords = []
-                singleStringCoords.append(line[2:])
-                self.__allStringCoords[int(line[self.string_num_index])] = singleStringCoords
-            else:
-                singleStringCoords.append(line[2:])
-        return self.__allStringCoords
-
-    def get_2d_coords_for_single_sting(self, stringNumber: int) -> list[list[float]]:
-        """Returns list of lists of coordinates of the chosen string
-        however strings which consists of several segments are just split with zeroes
-        correct segment drawing must be released in drawing function"""
-        stringCoordsList = [[float(x) for x in coords[:-1]]
-                            for coords in self.__allStringCoords[stringNumber]]
-        return stringCoordsList  # Format: [[float_x, float_y], [float_x, float_y]...]
+# class CsvDataHandler(SurpacDataHandler):
+#     NO_NAME_KEY = 1000
+#
+#     def __init__(self, string_num_field, stringNum):
+#         super().__init__()
+#         self.string_num_index = None
+#         self.__points = []
+#         self.__allStringCoords = dict()
+#         self.string_num_field = string_num_field
+#         self.stringNum = stringNum
+#         self.no_name_key = 1000
+#
+#     def read_csv_file(self, fileName: str) -> None:
+#         """
+#         This function reads .csv file all at once, splitting
+#         into list items by comma and returns data to __points value
+#         """
+#         with open(fileName, encoding="utf-8") as csvFile:
+#             strFileDataList = csvFile.readlines()
+#
+#         if self.stringNum == '' or self.string_num_field == '':
+#             for line in strFileDataList:
+#                 self.__points.append(line.split(', '))
+#
+#         elif self.stringNum.isdigit():
+#             self.string_num_index = strFileDataList[0].split(', ').index(self.string_num_field)
+#             for line in strFileDataList:
+#                 if line.split(', ')[self.string_num_index] == self.stringNum:
+#                     self.__points.append(line.split(', '))
+#         else:
+#             print('No points to import, or error occurred')
+#             # TODO: Create an exception
+#
+#     # Getter of the all points from string file, including zeroes
+#     def show_points(self):
+#         for line in self.__points:
+#             print(line)
+#
+#     def get_line_coordinates(self) -> dict:
+#         singleStringCoords = []
+#         self.NO_NAME_KEY += 1
+#         """Creates a dict with string number as a key
+#         and XYZ coords as a list of list of values (list[list[float]])"""
+#         for line in self.__points[1:]:
+#             if self.stringNum == '':
+#                 if CsvDataHandler.NO_NAME_KEY not in self.__allStringCoords.keys():
+#                     singleStringCoords = []
+#                     singleStringCoords.append(line[2:])
+#                     self.__allStringCoords[CsvDataHandler.NO_NAME_KEY] = singleStringCoords
+#                 else:
+#                     singleStringCoords.append(line[2:])
+#
+#             elif self.stringNum.isdigit():
+#                 if int(line[self.string_num_index]) not in self.__allStringCoords.keys():
+#                     singleStringCoords = []
+#                     singleStringCoords.append(line[2:])
+#                     self.__allStringCoords[int(line[self.string_num_index])] = singleStringCoords
+#                 else:
+#                     singleStringCoords.append(line[2:])
+#
+#         return self.__allStringCoords
+#
+#     def get_2d_coords_for_single_sting(self, stringNumber: str):
+#         """Returns list of lists of coordinates of the chosen string
+#         however strings which consists of several segments are just split with zeroes
+#         correct segment drawing must be released in drawing function"""
+#         if stringNumber.isdigit():
+#             stringCoordsList = [[float(x) for x in coords[:-1]]
+#                                 for coords in self.__allStringCoords[int(stringNumber)]]
+#             return stringCoordsList  # Format: [[float_x, float_y], [float_x, float_y]...]
+#
+#         elif stringNumber == '':
+#             stringCoordsList = [[[float(x) for x in coords[:-1]]
+#                                  for coords in self.__allStringCoords[key]]
+#                                 for key in self.__allStringCoords.keys()]
+#             return stringCoordsList
+#
+#
 
 
 

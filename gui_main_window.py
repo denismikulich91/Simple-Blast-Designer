@@ -83,4 +83,6 @@ dpg.destroy_context()
 # TODO: 4. Add functionality for importing segments separately (str, csv)
 # TODO: 5. Prepare icons
 # TODO: 6. Transfer all visualized data into Window class as dictionary
+# TODO: 7. Cover all in tests
+
 

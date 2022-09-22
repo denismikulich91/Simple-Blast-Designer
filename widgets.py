@@ -1,5 +1,6 @@
 import dearpygui.dearpygui as dpg
 import SurPy
+from csv_settings import CsvDataHandler
 
 
 class ImportSettings:
@@ -28,10 +29,7 @@ class ImportSettings:
                 dpg.add_button(callback=lambda: dpg.show_item("file_dialog_id"), label='Choose file', width=-1)
             with dpg.group(horizontal=True):
                 dpg.add_input_text(width=300, tag='string_number', default_value='')
-                dpg.add_text('Enter string number')
-            with dpg.group(horizontal=True):
-                dpg.add_input_text(width=300)
-                dpg.add_text('Enter segment number')
+                dpg.add_text('Enter line ID')
 
     def create_main_import_window(self, function_on_ok):
         with dpg.window(label=self.label, width=500, height=-1, pos=(400, 150), tag=self.tag):
@@ -80,11 +78,8 @@ class ImportSettingsCSV(ImportSettings):
             with dpg.group(horizontal=True):
                 dpg.add_combo(['Choose file first'], width=230, tag='csv_string_column')
                 dpg.add_input_text(width=55, tag='csv_string_number', default_value='')
-                dpg.add_text('String column name')
-            with dpg.group(horizontal=True):
-                dpg.add_combo(['Choose file first'], width=230, tag='csv_segment_column')
-                dpg.add_input_text(width=55, tag='csv_segment_number')
-                dpg.add_text('Segment column name')
+                dpg.add_text('Line ID name')
+
             with dpg.group(horizontal=True):
                 dpg.add_combo(['Choose file first'], width=300, tag='csv_x_column')
                 dpg.add_text('X coordinate')
@@ -119,7 +114,6 @@ class AppButtons:
         dpg.delete_item(user_data)
         dpg.delete_item('file_dialog_id')
 
-
     @staticmethod
     def get_file_name(sender, app_data, user_data):
         dpg.configure_item('file_name_input', default_value=app_data['file_path_name'])
@@ -127,7 +121,7 @@ class AppButtons:
             with open(app_data['file_path_name'], encoding="utf-8") as importedFile:
                 FileDataList = importedFile.readlines()
             csv_header_list = FileDataList[0].split(', ')
-            for tag in ['csv_string_column', 'csv_segment_column', 'csv_x_column', 'csv_y_column']:
+            for tag in ['csv_string_column', 'csv_x_column', 'csv_y_column']:
                 dpg.configure_item(tag, items=csv_header_list)
 
     @classmethod
@@ -152,15 +146,24 @@ class AppButtons:
 
     @classmethod
     def get_csv_import_data(cls):
-        imported_csv_data = SurPy.CsvDataHandler(dpg.get_value('csv_string_column'), dpg.get_value('csv_string_number'))
-        imported_csv_data.read_csv_file(dpg.get_value('file_name_input'))
-        imported_csv_data.show_points()
-        imported_csv_data.get_line_coordinates()
-        cleared_imported_string = imported_csv_data.get_2d_coords_for_single_sting(int(dpg.get_value('csv_string_number')))
+        imported_csv_data = CsvDataHandler()
+        imported_csv_data.import_csv_data(dpg.get_value('file_name_input'),
+                                          dpg.get_value('csv_string_column'),
+                                          dpg.get_value('csv_string_number'))
 
-        SurPy.SurpacDataHandler.drawing_depending_on_string_type(
-                cleared_imported_string, dpg.get_value('color_picker'), float(dpg.get_value('string_width_slider')))
-
+        # imported_csv_data.read_csv_file(dpg.get_value('file_name_input'))
+        # imported_csv_data.show_points()
+        # imported_csv_data.get_line_coordinates()
+        # cleared_imported_string = imported_csv_data.get_2d_coords_for_single_sting(dpg.get_value('csv_string_number'))
+        #
+        # if dpg.get_value('csv_string_number') == '':
+        #     for str_string in cleared_imported_string:
+        #         SurPy.SurpacDataHandler.drawing_depending_on_string_type(str_string,
+        #             dpg.get_value('color_picker'), float(dpg.get_value('string_width_slider')))
+        # elif dpg.get_value('csv_string_number').isdigit():
+        #     SurPy.SurpacDataHandler.drawing_depending_on_string_type(cleared_imported_string,
+        #                                                              dpg.get_value('color_picker'),
+        #                                                              float(dpg.get_value('string_width_slider')))
         dpg.delete_item('file_dialog_id')
         dpg.delete_item('csv_import_window')
 
