@@ -15,6 +15,7 @@ class Window:
         self.scale = dpg.create_scale_matrix([self.axis_scale, self.axis_scale, self.axis_scale])
         self.rotation = dpg.create_rotation_matrix(pi / 2, [0, 0, -1])
         self.translation = dpg.create_translation_matrix(self.translationCoordinates)
+        self.coords_changing = [0,0]
 
         with dpg.window(tag='main_window', label="Tutorial"):
             with dpg.group(horizontal=True):
@@ -31,16 +32,26 @@ class Window:
 
     def zoom(self, sender, app_data):
         if app_data == -1:
-            self.axis_scale -= 0.5
+            self.axis_scale *= 0.9
         else:
-            self.axis_scale += 0.5
+            self.axis_scale *= 1.1
         self.update_canvas()
 
     def move(self, sender, app_data):
-        if app_data[0] == 2:
-            self.translationCoordinates[0] += app_data[1] / 10
-            self.translationCoordinates[1] += app_data[2] / 10
-            self.update_canvas()
+        self.translationCoordinates[0] = app_data[1]
+        self.translationCoordinates[1] = app_data[2]
+        self.update_canvas()
+
+    def click_1(self):
+        self.coords_changing = dpg.get_mouse_pos()
+    def click_2(self):
+        self.translationCoordinates[0] += dpg.get_mouse_pos()[0] - self.coords_changing[0]
+        self.translationCoordinates[1] += dpg.get_mouse_pos()[1] - self.coords_changing[1]
+
+
+    # def update_translation(self):
+    #     self.translationCoordinates[0] += dpg.get_mouse_pos()[0]
+    #     self.translationCoordinates[1] += dpg.get_mouse_pos()[1]
 
     def update_canvas(self):
         self.scale = dpg.create_scale_matrix([my_window.axis_scale, my_window.axis_scale, my_window.axis_scale])
@@ -63,6 +74,10 @@ with dpg.handler_registry():
     dpg.add_mouse_wheel_handler(callback=my_window.zoom)
     dpg.add_mouse_drag_handler(callback=my_window.move)
     dpg.add_mouse_double_click_handler(button=2, callback=my_window.restore_screen_view)
+    dpg.add_mouse_click_handler(button=2, callback=my_window.click_1)
+    dpg.add_mouse_release_handler(button=2, callback=my_window.click_2)
+    # dpg.add_mouse_release_handler(button=2, callback=my_window.update_translation)
+
 
 dpg.create_viewport(title='Simple Blast Designer', width=1500, height=800, x_pos=20, y_pos=20)
 dpg.setup_dearpygui()
@@ -80,7 +95,6 @@ dpg.destroy_context()
 # TODO: 1. Check localization problems
 # TODO: 2. Find out how to change file dialog style settings
 # TODO: 3. Fix physics in the Canvas in translation
-# TODO: 4. Add functionality for importing segments separately (str, csv)
 # TODO: 5. Prepare icons
 # TODO: 6. Transfer all visualized data into Window class as dictionary
 # TODO: 7. Cover all in tests
