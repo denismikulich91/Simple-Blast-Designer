@@ -15,10 +15,9 @@ class Window:
         self.scale = dpg.create_scale_matrix([self.axis_scale, self.axis_scale, self.axis_scale])
         self.rotation = dpg.create_rotation_matrix(pi / 2, [0, 0, -1])
         self.translation = dpg.create_translation_matrix(self.translationCoordinates)
-        self.coords_changing = [0, 0]
-        self.relative_coords = [0, 0]
-        self.moving = [0, 0]
-        self.new_coords = [0, 0]
+        self.dragging_initial_coordinates = [0, 0]
+        self.dragging_final_coordinates = [0, 0]
+        self.relative_coordinates = [0, 0]
 
         with dpg.window(tag='main_window', label="Tutorial"):
             with dpg.group(horizontal=True):
@@ -42,9 +41,8 @@ class Window:
 
     def move(self, sender, app_data):
         self.update_canvas()
-        self.translationCoordinates[0] = app_data[1] + self.new_coords[0]
-        self.translationCoordinates[1] = app_data[2] + self.new_coords[1]
-
+        self.translationCoordinates[0] = app_data[1] + self.relative_coordinates[0]
+        self.translationCoordinates[1] = app_data[2] + self.relative_coordinates[1]
 
     def update_canvas(self):
         self.scale = dpg.create_scale_matrix([my_window.axis_scale, my_window.axis_scale, my_window.axis_scale])
@@ -52,6 +50,7 @@ class Window:
         dpg.apply_transform("base_layer", self.translation * self.scale * self.rotation)
 
     def restore_screen_view(self):
+        self.relative_coordinates = [0, 0]
         self.axis_scale = 1
         self.translationCoordinates = [0, 0]
         self.update_canvas()
@@ -59,26 +58,14 @@ class Window:
     def choose_color(self, sender, app_data):
         self.color = [int(i * 255) for i in app_data[:-1]]
 
-    # def move2(self, sender, app_data):
-    #     if dpg.is_mouse_button_down(button=2):
-    #         self.relative_coords[0] = dpg.get_mouse_pos()[0]
-    #         self.relative_coords[1] = dpg.get_mouse_pos()[1]
+    def button_2_release(self):
+        dragging_final_coordinates = dpg.get_mouse_pos()
+        self.relative_coordinates[0] -= (self.dragging_initial_coordinates[0] - dragging_final_coordinates[0])
+        self.relative_coordinates[1] -= (self.dragging_initial_coordinates[1] - dragging_final_coordinates[1])
 
-    def release(self):
-        self.moving[0] = dpg.get_mouse_pos()[0]
-        self.moving[1] = dpg.get_mouse_pos()[1]
-        self.new_coords[0] += (self.relative_coords[0] - self.moving[0])
-        self.new_coords[1] += (self.relative_coords[1] - self.moving[1])
-        print(self.new_coords)
-
-        # pass
-
-    def down(self):
-        self.relative_coords[0] = dpg.get_mouse_pos()[0]
-        self.relative_coords[1] = dpg.get_mouse_pos()[1]
-
-
-
+    def button_2_down(self):
+        self.dragging_initial_coordinates[0] = dpg.get_mouse_pos()[0]
+        self.dragging_initial_coordinates[1] = dpg.get_mouse_pos()[1]
 
 
 my_window = Window("Tutorial", 'main_window')
@@ -88,9 +75,8 @@ with dpg.handler_registry():
     dpg.add_mouse_wheel_handler(callback=my_window.zoom)
     dpg.add_mouse_drag_handler(callback=my_window.move)
     dpg.add_mouse_double_click_handler(button=2, callback=my_window.restore_screen_view)
-    # dpg.add_mouse_move_handler(callback=my_window.move2)
-    dpg.add_mouse_release_handler(button=2, callback=my_window.release)
-    dpg.add_mouse_click_handler(button=2, callback=my_window.down)
+    dpg.add_mouse_release_handler(button=2, callback=my_window.button_2_release)
+    dpg.add_mouse_click_handler(button=2, callback=my_window.button_2_down)
 
 
 dpg.create_viewport(title='Simple Blast Designer', width=1500, height=800, x_pos=20, y_pos=20)
