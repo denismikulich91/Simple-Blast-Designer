@@ -1,5 +1,5 @@
 import dearpygui.dearpygui as dpg
-import SurPy
+import str_settings
 from csv_settings import CsvDataHandler
 
 
@@ -125,7 +125,7 @@ class AppButtons:
 
     @classmethod
     def get_surpac_import_data(cls):
-        imported_data = SurPy.SurpacDataHandler()
+        imported_data = str_settings.SurpacDataHandler()
         imported_data.read_str_file(dpg.get_value('file_name_input'), dpg.get_value('string_number'))
         imported_data.get_line_coordinates()
         # imported_data.print_all_string_coordinates()
@@ -133,10 +133,10 @@ class AppButtons:
 
         if dpg.get_value('string_number') == '':
             for str_string in cleared_imported_string:
-                SurPy.SurpacDataHandler.drawing_depending_on_string_type(str_string,
+                str_settings.SurpacDataHandler.drawing_depending_on_string_type(str_string,
                     dpg.get_value('color_picker'), float(dpg.get_value('string_width_slider')))
         elif dpg.get_value('string_number').isdigit():
-            SurPy.SurpacDataHandler.drawing_depending_on_string_type(cleared_imported_string,
+            str_settings.SurpacDataHandler.drawing_depending_on_string_type(cleared_imported_string,
                                                                      dpg.get_value('color_picker'),
                                                                      float(dpg.get_value('string_width_slider')))
 
@@ -158,6 +158,7 @@ class AppButtons:
                                                          'base_layer')
         dpg.delete_item('file_dialog_id')
         dpg.delete_item('csv_import_window')
+
 
 
 
