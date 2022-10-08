@@ -5,13 +5,16 @@ from pubsub import pub
 import os
 from csv_settings import CsvDataHandler
 
+# Buttons IDs
 ID_IMPORT_CSV = wx.ID_HIGHEST + 1
 ID_CLEAR_ALL = ID_IMPORT_CSV + 1
-
+ID_DRAW = ID_CLEAR_ALL + 1
 
 class MainFrame(wx.Frame):
     def __init__(self):
         super().__init__(parent=None, title='Simple Blast Designer')
+        myCursor = wx.Cursor('Source/bitmaps/base_cursore.cur', type=wx.BITMAP_TYPE_CUR)
+        self.SetCursor(myCursor)
         self.SetSize(1300, 800)
         self.SetBackgroundColour(wx.Colour(85, 150, 140, 255))
         self.Center()
@@ -32,8 +35,9 @@ class MainPanel(wx.Panel):
         main_sizer.Add(self.ribbon, flag=wx.LEFT | wx.RIGHT | wx.TOP | wx.EXPAND, border=10)
         main_sizer.Add(self.canvas, 5,  flag=wx.LEFT | wx.RIGHT | wx.EXPAND, border=10)
         main_sizer.Add(self.info_panel,  flag=wx.LEFT | wx.BOTTOM | wx.TOP, border=10)
-        # TODO: Set up a proper sizing
         self.SetSizer(main_sizer)
+
+
 
     def clear_all(self, evt):
         self.canvas.clear_canvas(evt)
@@ -65,7 +69,7 @@ class InfoPanel(wx.Panel):
         z_entry = wx.TextCtrl(self, 1, value='0', size=(70, -1))
         status_panel_sizer.Add(z_entry, flag=wx.RIGHT | wx.ALIGN_CENTER, border=25)
 
-        self.info_label = wx.StaticText(self, label='Nothing is going on.....', size=(-1, -1))
+        self.info_label = wx.StaticText(self, label='Nothing is going on.....', size=(500, -1))
         status_panel_sizer.Add(self.info_label, 1,  flag=wx.ALIGN_CENTER | wx.LEFT, border=500)
 
         self.SetSizer(status_panel_sizer)
@@ -79,6 +83,7 @@ class InfoPanel(wx.Panel):
 
 
 class RibbonFrame(wx.Panel):
+    IsDrawing = False
 
     def __init__(self, parent, canvas):
         super().__init__(parent=parent)
@@ -87,11 +92,29 @@ class RibbonFrame(wx.Panel):
         dices = wx.Bitmap('Source/bitmaps/lbroll.png')
         csv_import = wx.Bitmap('Source/bitmaps/csv_import.png')
         str_import = wx.Bitmap('Source/bitmaps/str_import.png')
-        self._colour_data = wx.ColourData()
+        bin = wx.Bitmap('Source/bitmaps/bin.png')
+        file_save = wx.Bitmap('Source/bitmaps/filesave.png')
+        settings = wx.Bitmap('Source/bitmaps/settings.png')
+        new_file = wx.Bitmap('Source/bitmaps/new_file.png')
+        paste = wx.Bitmap('Source/bitmaps/paste.png')
+        finder = wx.Bitmap('Source/bitmaps/finder.png')
+        info = wx.Bitmap('Source/bitmaps/info.png')
+        look_and_feel = wx.Bitmap('Source/bitmaps/look_and_feel.png')
+        print_button = wx.Bitmap('Source/bitmaps/print.png')
 
+        draw_settings = wx.Bitmap('Source/bitmaps/draw_settings.png')
+        draw_tool = wx.Bitmap('Source/bitmaps/draw_tool.png')
+        get_item_info = wx.Bitmap('Source/bitmaps/get_item_info.png')
+        get_color_info = wx.Bitmap('Source/bitmaps/get_color_info.png')
+        crop = wx.Bitmap('Source/bitmaps/crop.png')
+        measurement = wx.Bitmap('Source/bitmaps/measurement.png')
+        insert_text = wx.Bitmap('Source/bitmaps/insert_text.png')
+        copy_data = wx.Bitmap('Source/bitmaps/copy_data.png')
+
+        self._colour_data = wx.ColourData()
         self._ribbon = RB.RibbonBar(self, wx.ID_ANY, agwStyle=RB.RIBBON_BAR_DEFAULT_STYLE)
         self._bitmap_creation_dc = wx.MemoryDC()
-        color_settings = self._ribbon.GetArtProvider()
+        # color_settings = self._ribbon.GetArtProvider()
         self._ribbon.GetArtProvider().SetColourScheme(wx.Colour(85, 150, 140, 255),
                                                       wx.Colour(255, 50, 40, 255),
                                                       wx.Colour(85, 50, 40, 255))
@@ -101,21 +124,21 @@ class RibbonFrame(wx.Panel):
                                             wx.DefaultSize, agwStyle=RB.RIBBON_PANEL_NO_AUTO_MINIMISE)
         toolbar = RB.RibbonToolBar(main_toolbar_panel)
 
-        toolbar.AddTool(wx.ID_NEW, wx.ArtProvider.GetBitmap(wx.ART_UNDO, wx.ART_OTHER, wx.Size(32, 32)))
+        toolbar.AddTool(wx.ID_UNDO, wx.ArtProvider.GetBitmap(wx.ART_UNDO, wx.ART_OTHER, wx.Size(32, 32)))
         toolbar.AddTool(wx.ID_NEW, wx.ArtProvider.GetBitmap(wx.ART_REDO, wx.ART_OTHER, wx.Size(32, 32)))
         toolbar.AddSeparator()
 
-        toolbar.AddTool(wx.ID_NEW, wx.ArtProvider.GetBitmap(wx.ART_NEW, wx.ART_OTHER, wx.Size(32, 32)))
-        toolbar.AddTool(wx.ID_ANY, wx.ArtProvider.GetBitmap(wx.ART_FILE_OPEN, wx.ART_OTHER, wx.Size(32, 32)))
-        toolbar.AddTool(wx.ID_ANY, wx.ArtProvider.GetBitmap(wx.ART_FILE_SAVE, wx.ART_OTHER, wx.Size(32, 32)))
+        toolbar.AddTool(wx.ID_NEW, paste)
+        toolbar.AddTool(wx.ID_ANY, new_file)
+        toolbar.AddTool(wx.ID_ANY, file_save)
         toolbar.AddSeparator()
-        toolbar.AddTool(wx.ID_UNDO, wx.ArtProvider.GetBitmap(wx.ART_FIND, wx.ART_OTHER, wx.Size(32, 32)))
-        toolbar.AddTool(wx.ID_UNDO, wx.ArtProvider.GetBitmap(wx.ART_INFORMATION, wx.ART_OTHER, wx.Size(32, 32)))
-        toolbar.AddTool(ID_CLEAR_ALL, wx.ArtProvider.GetBitmap(wx.ART_DELETE, wx.ART_OTHER, wx.Size(32, 32)))
+        toolbar.AddTool(wx.ID_UNDO, finder)
+        toolbar.AddTool(wx.ID_UNDO, info)
+        toolbar.AddTool(ID_CLEAR_ALL, bin)
         toolbar.AddSeparator()
-        toolbar.AddTool(wx.ID_ANY, lock_icon, kind=RB.RIBBON_BUTTON_TOGGLE)
-        toolbar.AddTool(wx.ID_ANY, dices)
-        toolbar.AddTool(wx.ID_ANY, wx.ArtProvider.GetBitmap(wx.ART_QUESTION, wx.ART_OTHER, wx.Size(32, 32)))
+        toolbar.AddTool(wx.ID_ANY, print_button)
+        toolbar.AddTool(wx.ID_ANY, look_and_feel)
+        toolbar.AddTool(wx.ID_ANY, settings)
 
         properties_panel = RB.RibbonPanel(home, wx.ID_ANY, "Properties (Double-click on item to generate)")
 
@@ -128,6 +151,17 @@ class RibbonFrame(wx.Panel):
         import_tools = RB.RibbonToolBar(import_tools_panel)
         import_tools.AddTool(ID_IMPORT_CSV, csv_import)
 
+        design_panel = RB.RibbonPanel(design_tools, wx.ID_ANY, "Design Tools", wx.NullBitmap, wx.DefaultPosition,
+                                            wx.DefaultSize, agwStyle=RB.RIBBON_PANEL_NO_AUTO_MINIMISE)
+        design_tools = RB.RibbonToolBar(design_panel)
+        design_tools.AddTool(wx.ID_ANY, draw_settings)
+        design_tools.AddTool(ID_DRAW, draw_tool, kind=RB.RIBBON_BUTTON_TOGGLE)
+        design_tools.AddTool(wx.ID_ANY, get_item_info)
+        design_tools.AddTool(wx.ID_ANY, get_color_info)
+        design_tools.AddTool(wx.ID_ANY, crop)
+        design_tools.AddTool(wx.ID_ANY, measurement)
+        design_tools.AddTool(wx.ID_ANY, insert_text)
+        design_tools.AddTool(wx.ID_ANY, copy_data)
 
         import_tools.AddTool(wx.ID_ANY, str_import)
         # import_tools.AddTool(wx.ID_ANY, test)
@@ -138,12 +172,21 @@ class RibbonFrame(wx.Panel):
         s.Add(self._ribbon, 1,  wx.EXPAND, border=0)
         self._ribbon.Realize()
         self.SetSizer(s)
-        self.BindEvents(import_tools, toolbar)
+        self.BindEvents(import_tools, toolbar, design_tools)
         self.Show()
 
-    def BindEvents(self, import_tools, toolbar):
+    def BindEvents(self, import_tools, toolbar, design_tools):
         import_tools.Bind(RB.EVT_RIBBONTOOLBAR_CLICKED, self.import_csv_button, id=ID_IMPORT_CSV)
         toolbar.Bind(RB.EVT_RIBBONTOOLBAR_CLICKED, self.canvas.clear_canvas,  id=ID_CLEAR_ALL)
+        design_tools.Bind(RB.EVT_RIBBONTOOLBAR_CLICKED, self.check, id=ID_DRAW)
+
+    def check(self, evt):
+        if not self.IsDrawing:
+            RibbonFrame.IsDrawing = True
+            pub.sendMessage("update_info_label", info="Let's draw something nice!")
+        else:
+            RibbonFrame.IsDrawing = False
+            pub.sendMessage("update_info_label", info='Nothing is going on.....')
 
     def import_csv_button(self, evt):
         ImportCsvDialog()
@@ -151,6 +194,7 @@ class RibbonFrame(wx.Panel):
 
 class Canvas(wx.Panel):
     all_data_on_canvas = []
+    temp_drawing_coords = []
 
     def __init__(self, parent):
         pub.subscribe(self.draw_data_on_canvas, "draw_data_on_canvas")
@@ -166,6 +210,7 @@ class Canvas(wx.Panel):
         self.Bind(FloatCanvas.EVT_MIDDLE_UP, self.update_cursor)
         self.main_canvas.Bind(wx.EVT_MIDDLE_DOWN, self.get_initial_coordinates)
         self.main_canvas.Bind(wx.EVT_MIDDLE_DCLICK, self.zoom_all)
+        self.main_canvas.Bind(FloatCanvas.EVT_LEFT_DOWN, self.drawing)
         self.coordinates = (0, 0)
         canvas_sizer.Add(self.NC, 4, flag=wx.EXPAND, border=10)
         self.SetSizer(canvas_sizer)
@@ -173,6 +218,7 @@ class Canvas(wx.Panel):
     def clear_canvas(self, evt):
         self.main_canvas.ClearAll(evt)
         Canvas.all_data_on_canvas = []
+        self.temp_drawing_coords = []
         self.main_canvas.ZoomToBB(NewBB=None, DrawFlag=True)
 
     def draw_data_on_canvas(self, import_instance, data_dict):
@@ -197,7 +243,10 @@ class Canvas(wx.Panel):
 
     def update_cursor(self, evt):
         self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
-        pub.sendMessage("update_info_label", info='Nothing is going on.....')
+        if RibbonFrame.IsDrawing:
+            pub.sendMessage("update_info_label", info="Let's draw something nice!")
+        else:
+            pub.sendMessage("update_info_label", info='Nothing is going on.....')
 
     def dragging(self, evt):
         self.coordinates = evt.Coords
@@ -209,11 +258,24 @@ class Canvas(wx.Panel):
             self.initial_coordinates = evt.GetPosition()
             pub.sendMessage("update_info_label", info='Dragging...')
 
+    def drawing(self, evt):
+        if RibbonFrame.IsDrawing:
+            temp_drawing = FloatCanvas.Point(evt.Coords, Diameter=3)
+            Canvas.temp_drawing_coords.append(evt.Coords)
+            if len(self.temp_drawing_coords) > 1:
+                temp_line_drawing = FloatCanvas.Line(Canvas.temp_drawing_coords)
+                self.main_canvas.AddObject(temp_line_drawing)
+            self.main_canvas.AddObject(temp_drawing)
+            self.main_canvas.Draw(True)
+
 
 class MainCsvImportPanel(wx.Panel):
 
     def __init__(self, parent):
         super().__init__(parent)
+        myCursor = wx.Cursor('Source/bitmaps/base_cursore.cur', type=wx.BITMAP_TYPE_CUR)
+        self.SetCursor(myCursor)
+
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         file_sizer = wx.BoxSizer(wx.HORIZONTAL)
         button_report_open = wx.Button(self, label='Выбрать файл', size=(-1, -1))
@@ -304,6 +366,7 @@ class MainCsvImportPanel(wx.Panel):
 class ImportCsvDialog(wx.Frame):
     def __init__(self):
         super().__init__(None, title='Import CSV')
+        self.SetBackgroundColour(wx.Colour(62, 224, 202, 255))
         self.SetSize(430, 400)
         panel = MainCsvImportPanel(self)
         self.Center()
