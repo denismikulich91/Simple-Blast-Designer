@@ -43,6 +43,13 @@ class CsvDataHandler:
             csv_file_fields = csv_file_data.readline()
         return csv_file_fields.split(', ')
 
+    @staticmethod
+    def get_csv_file_fields_static(file_path) -> list[str]:
+        """Returns first line of CSV file as a list"""
+        with open(file_path, encoding="utf-8") as csv_file_data:
+            csv_file_fields = csv_file_data.readline()
+        return csv_file_fields.split(', ')
+
     @property
     def get_data(self) -> list[list[float, float]] | list[list[list[float, float]]]:
         """Returns a dictionary with chosen ID if no ID provided, returns full import dictionary
@@ -58,12 +65,12 @@ class CsvDataHandler:
         else:
             return self.__allStringCoords[self.data_id]
 
-    def prepare_data_to_draw_in_canvas(self, draw_func, par_1, par_2, layer):
+    def prepare_data_to_draw_in_canvas(self, draw_func, par_1, par_2, par_3):
         if self.data_id is None and self.id_field_index is not None:
             for data in self.get_data:
-                draw_func(data, color=par_1, thickness=par_2, parent=layer)
+                yield draw_func(data, par_1, par_2, par_3)
         else:
-            draw_func(self.get_data, color=par_1, thickness=par_2, parent=layer)
+            yield draw_func(self.get_data, par_1, par_2, par_3)
 
 
 class CsvParamError(Exception):
