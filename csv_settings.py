@@ -4,6 +4,7 @@ class CsvDataHandler:
     def __init__(self, file_path, id_field, data_id):
         self.__allStringCoords = dict()
         self.file_path = file_path
+        self.is_multi = False
         if id_field in self.get_csv_file_fields:
             self.id_field_index = self.get_csv_file_fields.index(id_field)
             self.data_id = data_id if data_id != '' else None
@@ -67,6 +68,7 @@ class CsvDataHandler:
 
     def prepare_data_to_draw_in_canvas(self, draw_func, par_1, par_2, par_3):
         if self.data_id is None and self.id_field_index is not None:
+            self.is_multi = True
             for data in self.get_data:
                 yield draw_func(data, par_1, par_2, par_3)
         else:
@@ -80,5 +82,6 @@ class CsvParamError(Exception):
 
 if __name__ == "__main__":
     csv_file = CsvDataHandler(r'Source\lines_from_csv.csv', 'string', '6')
-    csv_file.import_csv_data('', 'y')
+    csv_file.import_csv_data('x', 'y')
+    print(csv_file.data_id)
 

@@ -4,20 +4,22 @@ import wx.lib.agw.ribbon as RB
 from pubsub import pub
 import os
 from csv_settings import CsvDataHandler
+from lines_and_points import LinesAndPoints
 
 # Buttons IDs
 ID_IMPORT_CSV = wx.ID_HIGHEST + 1
 ID_CLEAR_ALL = ID_IMPORT_CSV + 1
 ID_DRAW = ID_CLEAR_ALL + 1
+ID_DRAW_SETTINGS = ID_DRAW + 1
+
 
 class MainFrame(wx.Frame):
     def __init__(self):
         super().__init__(parent=None, title='Simple Blast Designer')
-        myCursor = wx.Cursor('Source/bitmaps/base_cursore.cur', type=wx.BITMAP_TYPE_CUR)
-        self.SetCursor(myCursor)
         self.SetSize(1300, 800)
         self.SetBackgroundColour(wx.Colour(85, 150, 140, 255))
         self.Center()
+
         self.main_panel = MainPanel(self)
         self.Show()
         # self.Maximize(True)
@@ -26,9 +28,10 @@ class MainFrame(wx.Frame):
 class MainPanel(wx.Panel):
     def __init__(self, parent):
         super().__init__(parent)
+        self.DEFAULT_CURSOR = wx.Cursor('Source/bitmaps/base_cursor.cur', type=wx.BITMAP_TYPE_CUR)
+        self.SetCursor(self.DEFAULT_CURSOR)
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         self.canvas = Canvas(self)
-
         self.ribbon = RibbonFrame(self, self.canvas)
         self.info_panel = InfoPanel(self, self.canvas.coordinates)
 
@@ -84,6 +87,7 @@ class InfoPanel(wx.Panel):
 
 class RibbonFrame(wx.Panel):
     IsDrawing = False
+    IsSettingsOn = False
 
     def __init__(self, parent, canvas):
         super().__init__(parent=parent)
@@ -154,7 +158,7 @@ class RibbonFrame(wx.Panel):
         design_panel = RB.RibbonPanel(design_tools, wx.ID_ANY, "Design Tools", wx.NullBitmap, wx.DefaultPosition,
                                             wx.DefaultSize, agwStyle=RB.RIBBON_PANEL_NO_AUTO_MINIMISE)
         design_tools = RB.RibbonToolBar(design_panel)
-        design_tools.AddTool(wx.ID_ANY, draw_settings)
+        design_tools.AddTool(ID_DRAW_SETTINGS, draw_settings, kind=RB.RIBBON_BUTTON_TOGGLE)
         design_tools.AddTool(ID_DRAW, draw_tool, kind=RB.RIBBON_BUTTON_TOGGLE)
         design_tools.AddTool(wx.ID_ANY, get_item_info)
         design_tools.AddTool(wx.ID_ANY, get_color_info)
@@ -184,19 +188,29 @@ class RibbonFrame(wx.Panel):
         if not self.IsDrawing:
             RibbonFrame.IsDrawing = True
             pub.sendMessage("update_info_label", info="Let's draw something nice!")
+            self.canvas.SetCursor(self.canvas.CAD_CURSOR)
         else:
             RibbonFrame.IsDrawing = False
             pub.sendMessage("update_info_label", info='Nothing is going on.....')
+            self.canvas.SetCursor(self.canvas.DEFAULT_CURSOR)
 
     def import_csv_button(self, evt):
         ImportCsvDialog()
 
 
 class Canvas(wx.Panel):
-    all_data_on_canvas = []
-    temp_drawing_coords = []
-
     def __init__(self, parent):
+        cad_image = wx.Image('Source/Cursors/main_cad_cursor.cur')
+        dragging_image = wx.Image('Source/bitmaps/dragging_cursor.cur')
+
+        for image in [cad_image, dragging_image]:
+            image.SetOption(wx.IMAGE_OPTION_CUR_HOTSPOT_X, 18)
+            image.SetOption(wx.IMAGE_OPTION_CUR_HOTSPOT_Y, 18)
+        self.lines_and_points = LinesAndPoints()
+        self.DEFAULT_CURSOR = wx.Cursor('Source/bitmaps/base_cursor.cur', type=wx.BITMAP_TYPE_CUR)
+        self.CAD_CURSOR = wx.Cursor(cad_image)
+        self.DRAGGING_CURSOR = wx.Cursor(dragging_image)
+
         pub.subscribe(self.draw_data_on_canvas, "draw_data_on_canvas")
         super().__init__(parent=parent)
         self.start = (0, 0)
@@ -216,18 +230,29 @@ class Canvas(wx.Panel):
         self.SetSizer(canvas_sizer)
 
     def clear_canvas(self, evt):
+        print(self.lines_and_points.lines_dict)
+        self.lines_and_points.clear_all()  # TODO: Create a 'are you sure' dialog
+
+        # Not sure if this needed when I can achieve permanent link between canvas and Lines and Points dict
         self.main_canvas.ClearAll(evt)
-        Canvas.all_data_on_canvas = []
-        self.temp_drawing_coords = []
+        self.main_canvas.Update()
         self.main_canvas.ZoomToBB(NewBB=None, DrawFlag=True)
+        print(self.lines_and_points.lines_dict)
 
     def draw_data_on_canvas(self, import_instance, data_dict):
         [self.main_canvas.AddObject(x) for x in import_instance.prepare_data_to_draw_in_canvas(
             FloatCanvas.Line, data_dict['color'], data_dict['style'], data_dict['width'])]
 
+        [self.main_canvas.AddObject(x) for x in import_instance.prepare_data_to_draw_in_canvas(
+            FloatCanvas.PointSet, data_dict['color'], 3, data_dict['width'])]
+
         self.main_canvas.ZoomToBB(NewBB=None, DrawFlag=True)
         self.main_canvas.Draw()
-        Canvas.all_data_on_canvas.append(data_dict)
+        self.lines_and_points.add_new_line(import_instance.is_multi, import_instance.get_data, data_dict['color'],
+                                           data_dict['style'], data_dict['width'], layer=import_instance.data_id)
+
+        self.lines_and_points.get_info(self.lines_and_points.object_id)
+
 
     def zoom_all(self, evt):
         self.main_canvas.ZoomToBB(NewBB=None, DrawFlag=True)
@@ -242,10 +267,11 @@ class Canvas(wx.Panel):
         self.initial_coordinates = evt.GetPosition()
 
     def update_cursor(self, evt):
-        self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
         if RibbonFrame.IsDrawing:
+            self.SetCursor(self.CAD_CURSOR)
             pub.sendMessage("update_info_label", info="Let's draw something nice!")
         else:
+            self.SetCursor(self.DEFAULT_CURSOR)
             pub.sendMessage("update_info_label", info='Nothing is going on.....')
 
     def dragging(self, evt):
@@ -253,16 +279,18 @@ class Canvas(wx.Panel):
         pub.sendMessage("update_coordinates", updated_coordinates=self.coordinates)
 
         if evt.Dragging() and evt.MiddleIsDown():
-            self.SetCursor(wx.Cursor(wx.CURSOR_SIZING))
+            self.SetCursor(self.DRAGGING_CURSOR)
             self.main_canvas.MoveImage((self.initial_coordinates - evt.GetPosition()), 'Pixel')
             self.initial_coordinates = evt.GetPosition()
             pub.sendMessage("update_info_label", info='Dragging...')
 
     def drawing(self, evt):
+        # TODO: take it out to the separate module
         if RibbonFrame.IsDrawing:
             temp_drawing = FloatCanvas.Point(evt.Coords, Diameter=3)
+            # LinesAndPoints.lines_and_points_dict['lines']['coordinates'][random_id].append(evt.Coords)
             Canvas.temp_drawing_coords.append(evt.Coords)
-            if len(self.temp_drawing_coords) > 1:
+            if len(Canvas.temp_drawing_coords) > 1:
                 temp_line_drawing = FloatCanvas.Line(Canvas.temp_drawing_coords)
                 self.main_canvas.AddObject(temp_line_drawing)
             self.main_canvas.AddObject(temp_drawing)
@@ -273,7 +301,7 @@ class MainCsvImportPanel(wx.Panel):
 
     def __init__(self, parent):
         super().__init__(parent)
-        myCursor = wx.Cursor('Source/bitmaps/base_cursore.cur', type=wx.BITMAP_TYPE_CUR)
+        myCursor = wx.Cursor('Source/bitmaps/base_cursor.cur', type=wx.BITMAP_TYPE_CUR)
         self.SetCursor(myCursor)
 
         main_sizer = wx.BoxSizer(wx.VERTICAL)
