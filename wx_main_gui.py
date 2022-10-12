@@ -191,6 +191,7 @@ class RibbonFrame(wx.Panel):
             self.canvas.SetCursor(self.canvas.CAD_CURSOR)
         else:
             RibbonFrame.IsDrawing = False
+            self.canvas.update_lines_and_points()
             pub.sendMessage("update_info_label", info='Nothing is going on.....')
             self.canvas.SetCursor(self.canvas.DEFAULT_CURSOR)
 
@@ -199,6 +200,7 @@ class RibbonFrame(wx.Panel):
 
 
 class Canvas(wx.Panel):
+    temp_drawing_coords = []
     def __init__(self, parent):
         cad_image = wx.Image('Source/Cursors/main_cad_cursor.cur')
         dragging_image = wx.Image('Source/bitmaps/dragging_cursor.cur')
@@ -210,11 +212,17 @@ class Canvas(wx.Panel):
         self.DEFAULT_CURSOR = wx.Cursor('Source/bitmaps/base_cursor.cur', type=wx.BITMAP_TYPE_CUR)
         self.CAD_CURSOR = wx.Cursor(cad_image)
         self.DRAGGING_CURSOR = wx.Cursor(dragging_image)
+        #####Drawing default settings#####
+        self.line_color = (0, 0, 0)
+        self.line_style = 'Solid'
+        self.line_width = 0
 
         pub.subscribe(self.draw_data_on_canvas, "draw_data_on_canvas")
         super().__init__(parent=parent)
         self.start = (0, 0)
         canvas_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.layers = ['temp_layer']
+        self.active_layer = self.layers[0]
         self.NC = NavCanvas.NavCanvas(self, BackgroundColor="White")
         self.main_canvas = self.NC.Canvas
         self.NC.ToolBar.Destroy()
@@ -225,6 +233,7 @@ class Canvas(wx.Panel):
         self.main_canvas.Bind(wx.EVT_MIDDLE_DOWN, self.get_initial_coordinates)
         self.main_canvas.Bind(wx.EVT_MIDDLE_DCLICK, self.zoom_all)
         self.main_canvas.Bind(FloatCanvas.EVT_LEFT_DOWN, self.drawing)
+        self.main_canvas.Bind(FloatCanvas.EVT_RIGHT_DOWN, self.drawing)
         self.coordinates = (0, 0)
         canvas_sizer.Add(self.NC, 4, flag=wx.EXPAND, border=10)
         self.SetSizer(canvas_sizer)
@@ -239,7 +248,7 @@ class Canvas(wx.Panel):
         self.main_canvas.ZoomToBB(NewBB=None, DrawFlag=True)
         print(self.lines_and_points.lines_dict)
 
-    def draw_data_on_canvas(self, import_instance, data_dict):
+    def draw_data_on_canvas(self, import_instance, data_dict):  # Imported CSV data!!!!
         [self.main_canvas.AddObject(x) for x in import_instance.prepare_data_to_draw_in_canvas(
             FloatCanvas.Line, data_dict['color'], data_dict['style'], data_dict['width'])]
 
@@ -249,9 +258,9 @@ class Canvas(wx.Panel):
         self.main_canvas.ZoomToBB(NewBB=None, DrawFlag=True)
         self.main_canvas.Draw()
         self.lines_and_points.add_new_line(import_instance.is_multi, import_instance.get_data, data_dict['color'],
-                                           data_dict['style'], data_dict['width'], layer=import_instance.data_id)
+                                           data_dict['style'], data_dict['width'], layer=self.active_layer)
 
-        self.lines_and_points.get_info(self.lines_and_points.object_id)
+        # self.lines_and_points.get_info(self.lines_and_points.object_id)
 
 
     def zoom_all(self, evt):
@@ -285,16 +294,28 @@ class Canvas(wx.Panel):
             pub.sendMessage("update_info_label", info='Dragging...')
 
     def drawing(self, evt):
-        # TODO: take it out to the separate module
-        if RibbonFrame.IsDrawing:
+        if RibbonFrame.IsDrawing and evt.Button(1):
             temp_drawing = FloatCanvas.Point(evt.Coords, Diameter=3)
-            # LinesAndPoints.lines_and_points_dict['lines']['coordinates'][random_id].append(evt.Coords)
             Canvas.temp_drawing_coords.append(evt.Coords)
             if len(Canvas.temp_drawing_coords) > 1:
                 temp_line_drawing = FloatCanvas.Line(Canvas.temp_drawing_coords)
                 self.main_canvas.AddObject(temp_line_drawing)
             self.main_canvas.AddObject(temp_drawing)
             self.main_canvas.Draw(True)
+        elif RibbonFrame.IsDrawing and evt.Button(3) and len(Canvas.temp_drawing_coords) > 1:
+            Canvas.temp_drawing_coords.append(Canvas.temp_drawing_coords[0])
+            temp_line_drawing = FloatCanvas.Line(Canvas.temp_drawing_coords)
+            self.main_canvas.AddObject(temp_line_drawing)
+            self.main_canvas.Draw(True)
+            self.update_lines_and_points()
+
+    def update_lines_and_points(self):
+        if Canvas.temp_drawing_coords:
+            coordinates = [list(x) for x in Canvas.temp_drawing_coords]
+            self.lines_and_points.add_new_line(False, coordinates, self.line_color, self.line_style,
+                                               self.line_width, self.active_layer)
+            self.lines_and_points.get_info_of_last_object()
+            Canvas.temp_drawing_coords = []
 
 
 class MainCsvImportPanel(wx.Panel):

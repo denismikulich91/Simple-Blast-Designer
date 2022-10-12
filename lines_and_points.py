@@ -21,7 +21,10 @@ class LinesAndPoints:
     def get_2d_length(coordinates: list) -> float:
         # LineString is a Shapely object
         line = LineString(coordinates)
-        return line.length
+        if len(coordinates) > 0:
+            return line.length
+        else:
+            return 0
     
     @staticmethod
     def get_2d_area(coordinates: list) -> float:
@@ -84,8 +87,11 @@ class LinesAndPoints:
     def get_style(self, object_id):
         return self.lines_dict[object_id]['style']
 
-    def get_info(self, object_id=0):
-        print(f'Line {object_id} has {self.get_color(object_id)} color, '
-              f'{self.get_style(object_id)} style, {self.get_width(object_id)}, \n'
-              f'coordinates are: {self.get_coordinates(object_id)}')
+    def is_closed(self, object_id):
+        return self.lines_dict[object_id]['closed']
+
+    def get_info_of_last_object(self):
+        print(f'Line {self.object_id} has {self.get_color(self.object_id)} color, '
+              f'{self.get_style(self.object_id)} style, {self.get_width(self.object_id)}, \n'
+              f'coordinates are: {self.get_coordinates(self.object_id)} closed:{self.is_closed(self.object_id)}')
         
