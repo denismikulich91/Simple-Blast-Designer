@@ -1,7 +1,11 @@
 from shapely.geometry import LineString
 
+
 class LinesAndPoints:
-    # TODO: Swipe ID and Layer
+    """This class used to organize lines and points data.
+    It has a dictionary which is populated by specific functions.
+    It helps to add, delete and change any set of point or line data, also
+    provides methods to calculate basic attributes e.g. Area or Length"""
     def __init__(self):
         self.lines_dict = dict()
         self.points_dict = dict()
@@ -9,20 +13,24 @@ class LinesAndPoints:
 
     @property
     def get_unique_id(self):
+        """Creates an object ID every time rising it by 1"""
         self.object_id += 1
         return self.object_id
     
     @staticmethod
-    def get_2d_length(coordinates):
+    def get_2d_length(coordinates: list) -> float:
+        # LineString is a Shapely object
         line = LineString(coordinates)
         return line.length
     
     @staticmethod
-    def get_2d_area(coordinates):
+    def get_2d_area(coordinates: list) -> float:
         line = LineString(coordinates)
         return line.area
 
     def _add_new_line(self, coordinates, color, style, width, layer):
+        """Used in outer functions, passing all attributes needed
+        to create a new item in lines_dict"""
         self.object_id = self.get_unique_id
         self.lines_dict[self.object_id] = {}
         self.lines_dict[self.object_id]['coordinates'] = coordinates
@@ -35,7 +43,9 @@ class LinesAndPoints:
         self.lines_dict[self.object_id]['area'] = self.get_2d_area(coordinates) if self.lines_dict[self.object_id]['closed'] else 0
         self.lines_dict[self.object_id]['comment'] = ''
 
-    def add_new_line(self, is_multi, coordinates, color, style, width, layer):
+    def add_new_line(self, is_multi: bool, coordinates: list | tuple, color: tuple, style: str, width: int, layer: str) -> None:
+        """ Does an _add_new_line function but depending on if it is a nested
+        list, runs function twice"""
         if is_multi:
             for line in coordinates:
                 self._add_new_line(line, color, style, width, layer)
@@ -43,7 +53,8 @@ class LinesAndPoints:
             self._add_new_line(coordinates, color, style, width, layer)
 
 
-    def close_line(self, object_id):
+    def close_line(self, object_id: int):
+        """Creates one more point with coordinates same as first point's"""
         self.lines_dict[object_id]['coordinates'].append(self.lines_dict[object_id]['coordinates'][0])
 
     def change_coordinates(self, object_id, coordinates):
