@@ -1,7 +1,7 @@
 import dearpygui.dearpygui as dpg
 from math import *
-from gui_settings import Settings
-from widgets import AppButtons
+from depricated.gui_settings import Settings
+from depricated.widgets import AppButtons
 
 dpg.create_context()
 
