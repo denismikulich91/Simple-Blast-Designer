@@ -1,4 +1,5 @@
-import wx, os
+import wx
+import os
 from csv_settings import CsvDataHandler
 from pubsub import pub
 
@@ -8,7 +9,7 @@ class ImportCsvDialog(wx.Frame):
         super().__init__(None, title='Import CSV')
         self.SetBackgroundColour(wx.Colour(62, 224, 202, 255))
         self.SetSize(430, 400)
-        panel = MainCsvImportPanel(self)
+        self.panel = MainCsvImportPanel(self)
         self.Center()
         self.Show()
 
@@ -71,7 +72,8 @@ class MainCsvImportPanel(wx.Panel):
         main_sizer.Add(y_coordinate_sizer, proportion=1, flag=wx.LEFT | wx.RIGHT | wx.EXPAND, border=15)
         main_sizer.Add(width_slider_sizer, proportion=1, flag=wx.LEFT | wx.RIGHT, border=15)
         main_sizer.Add(self.line_type, proportion=-1, flag=wx.LEFT | wx.RIGHT, border=15)
-        main_sizer.Add(bottom_buttons_sizer, proportion=-1, flag=wx.LEFT | wx.BOTTOM | wx.RIGHT | wx.TOP | wx.ALIGN_RIGHT, border=15)
+        main_sizer.Add(bottom_buttons_sizer, proportion=-1,
+                       flag=wx.LEFT | wx.BOTTOM | wx.RIGHT | wx.TOP | wx.ALIGN_RIGHT, border=15)
 
         self.SetSizer(main_sizer)
         self.Layout()
@@ -101,7 +103,10 @@ class MainCsvImportPanel(wx.Panel):
         imported_csv_data.import_csv_data(self.object_x_field.GetValue(),
                                           self.object_y_field.GetValue())
         line_type_selections = {0: 'Solid', 1: 'LongDash', 2: 'Dot', 3: 'DotDash'}
-        data_from_import = {'coordinates': imported_csv_data.get_data, 'color': self.line_color.GetColour()[:-1],
-                            'width': int(self.width_slider.GetValue()), 'style': line_type_selections[self.line_type.GetSelection()]}
+        data_from_import = {'coordinates': imported_csv_data.get_data,
+                            'color': self.line_color.GetColour()[:-1],
+                            'width': int(self.width_slider.GetValue()),
+                            'style': line_type_selections[self.line_type.GetSelection()]}
+
         pub.sendMessage("draw_data_on_canvas", import_instance=imported_csv_data, data_dict=data_from_import)
         self.GetParent().Destroy()
