@@ -1,4 +1,5 @@
 import wx
+import wx.propgrid as wxpg
 import os
 from csv_settings import CsvDataHandler
 from pubsub import pub
@@ -110,3 +111,55 @@ class MainCsvImportPanel(wx.Panel):
 
         pub.sendMessage("draw_data_on_canvas", import_instance=imported_csv_data, data_dict=data_from_import)
         self.GetParent().Destroy()
+
+
+class LayersAndProperties(wx.Panel):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.SetBackgroundColour((200, 200, 200))
+        sizer = wx.BoxSizer()
+        self.property_table = wxpg.PropertyGrid(self,
+                                               style=wxpg.PG_SPLITTER_AUTO_CENTER | wxpg.PG_TOOLBAR)
+        self.property_table.Append(wxpg.PropertyCategory('Current drawing settings', name='drawing'))
+        self.property_table.Append(wxpg.ColourProperty(label='Color', name='d_color', value=wx.BLACK))
+        self.property_table.Append(wxpg.EnumProperty(label='Style', labels=['Solid', 'Dashed', 'Dotted', 'Dash-Dotted'],
+                                                     name='d_style', values=[0, 1, 2, 3]))
+        self.property_table.Append(wxpg.EnumProperty(label='Width', labels=['Thin', 'Not so thin', 'Rather thick', 'Rather fat', 'Fat'],
+                                                     name='d_width', values=[0, 1, 2, 3, 4], value=0))
+
+        self.property_table.Append(wxpg.PropertyCategory('Object properties', name='properties'))
+        self.property_table.Append(wxpg.IntProperty(label='Object ID', name='id'))
+        self.property_table.Append(wxpg.LongStringProperty(label='Coordinates', name='coordinates'))
+        self.property_table.Append(wxpg.FloatProperty(label='2D Length', name='length'))
+        self.property_table.Append(wxpg.FloatProperty(label='2D Area', name='area'))
+        self.property_table.Append(wxpg.BoolProperty(label='Closed', name='closed'))
+        self.property_table.SetPropertyAttribute("closed", "UseCheckbox", True)
+        color = wxpg.ColourProperty(label='Color', name='color', value=wx.BLACK)
+        color.GetEditorDialog()
+        self.property_table.Append(color)
+        self.property_table.Append(wxpg.EnumProperty(label='Style', labels=['Solid', 'Dashed', 'Dotted', 'Dash-Dotted'],
+                                                     name='style', values=[0, 1, 2, 3]))
+        self.property_table.Append(
+            wxpg.EnumProperty(label='Width', labels=['Thin', 'Not so thin', 'Rather thick', 'Rather fat', 'Fat'],
+                              name='width', values=[0, 1, 2, 3, 4], value=0))
+        self.property_table.Append(wxpg.LongStringProperty(label='Comments', name='comments'))
+        self.property_table.HideProperty('properties', True)
+        sizer.Add(self.property_table, 1, wx.EXPAND, border=10)
+        self.SetSizer(sizer)
+
+    def show_properties(self, show: bool) -> None:
+        self.property_table.HideProperty('properties', show)
+
+    @property
+    def get_color(self):
+        return self.property_table.GetPropertyValue('d_color')[:-1]
+
+    @property
+    def get_style(self):
+        style_dict = {0: 'Solid', 1: 'LongDash', 2: 'Dot', 3: 'DotDash'}
+        return style_dict[self.property_table.GetPropertyValue('d_style')]
+
+    @property
+    def get_width(self):
+        return int(self.property_table.GetPropertyValue('d_width'))
+

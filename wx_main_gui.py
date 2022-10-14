@@ -1,8 +1,9 @@
 import wx
-from side_dialogs import ImportCsvDialog
+from side_dialogs import ImportCsvDialog, LayersAndProperties
 from wx.lib.floatcanvas import FloatCanvas, NavCanvas
 import wx.lib.agw.ribbon as rb
 from pubsub import pub
+from shapely.geometry import LineString
 import os
 from csv_settings import CsvDataHandler
 from lines_and_points import LinesAndPoints
@@ -32,16 +33,17 @@ class MainPanel(wx.Panel):
         self.DEFAULT_CURSOR = wx.Cursor('Source/bitmaps/base_cursor.cur', type=wx.BITMAP_TYPE_CUR)
         self.SetCursor(self.DEFAULT_CURSOR)
         main_sizer = wx.BoxSizer(wx.VERTICAL)
-        self.canvas = Canvas(self)
-        self.ribbon = RibbonFrame(self, self.canvas)
+        self.layer_and_settings_panel = LayersAndProperties(self)
+        self.canvas = Canvas(self, self.layer_and_settings_panel)
         self.info_panel = InfoPanel(self, self.canvas.coordinates, self.canvas.layers, self.canvas.active_layer)
-
+        self.ribbon = RibbonFrame(self, self.canvas)
+        canvas_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        canvas_sizer.Add(self.canvas, 5,  flag=wx.RIGHT | wx.EXPAND, border=5)
+        canvas_sizer.Add(self.layer_and_settings_panel, 1,  flag=wx.LEFT | wx.RIGHT | wx.EXPAND, border=0)
         main_sizer.Add(self.ribbon, flag=wx.LEFT | wx.RIGHT | wx.TOP | wx.EXPAND, border=10)
-        main_sizer.Add(self.canvas, 5,  flag=wx.LEFT | wx.RIGHT | wx.EXPAND, border=10)
+        main_sizer.Add(canvas_sizer, 5,  flag=wx.LEFT | wx.RIGHT | wx.EXPAND, border=10)
         main_sizer.Add(self.info_panel,  flag=wx.LEFT | wx.BOTTOM | wx.TOP, border=10)
         self.SetSizer(main_sizer)
-
-
 
     def clear_all(self, evt):
         self.canvas.clear_canvas(evt)
@@ -51,7 +53,7 @@ class InfoPanel(wx.Panel):
 
     def __init__(self, parent, coordinates, layers, active_layer):
         super().__init__(parent=parent)
-        self.layers = layers
+        self.layers = layers + ['1', '2', '3']
         self.active_layer = active_layer
         pub.subscribe(self.update_coordinates_via_pubsub, "update_coordinates")
         pub.subscribe(self.update_info_label_via_pubsub, "update_info_label")
@@ -75,15 +77,8 @@ class InfoPanel(wx.Panel):
         z_entry = wx.TextCtrl(self, 1, value='0', size=(70, -1))
         status_panel_sizer.Add(z_entry, flag=wx.RIGHT | wx.ALIGN_CENTER, border=25)
 
-        self.info_label = wx.StaticText(self, label='Nothing is going on.....', size=(-1, -1))
-        status_panel_sizer.Add(self.info_label, 15,  flag=wx.ALIGN_CENTER | wx.LEFT, border=25)
-
-        active_layer_label = wx.StaticText(self, label='Active layer:', size=(-1, -1))
-        self.layer_combo = wx.ComboBox(self, choices=self.layers, value=self.active_layer, style=wx.CB_READONLY, size=(300, -1))
-        self.add_layer_button = wx.Button(self, label='+', size=(20, -1))
-        status_panel_sizer.Add(active_layer_label, 1, flag=wx.ALIGN_CENTER | wx.LEFT | wx.RIGHT, border=5)
-        status_panel_sizer.Add(self.layer_combo, 1, flag=wx.ALIGN_CENTER | wx.LEFT | wx.RIGHT, border=5)
-        status_panel_sizer.Add(self.add_layer_button, 1, flag=wx.ALIGN_CENTER | wx.RIGHT, border=10)
+        self.info_label = wx.StaticText(self, label='Nothing is going on.....', size=(1000, -1))
+        status_panel_sizer.Add(self.info_label, 15,  flag=wx.LEFT | wx.ALIGN_CENTER, border=25)
 
         self.SetSizer(status_panel_sizer)
 
@@ -197,7 +192,10 @@ class RibbonFrame(wx.Panel):
     def check(self, evt):
         if not self.IsDrawing:
             RibbonFrame.IsDrawing = True
-            pub.sendMessage("update_info_label", info="Let's draw something nice!")
+            spaces = ' ' * 20
+            pub.sendMessage("update_info_label",
+                            info=f'Drawing Line...{spaces}Left click to draw, Shift + Right Click '
+                                 f'to close or Right Click to start new line')
             self.canvas.SetCursor(self.canvas.CAD_CURSOR)
         else:
             RibbonFrame.IsDrawing = False
@@ -205,27 +203,30 @@ class RibbonFrame(wx.Panel):
             pub.sendMessage("update_info_label", info='Nothing is going on.....')
             self.canvas.SetCursor(self.canvas.DEFAULT_CURSOR)
 
+
     def import_csv_button(self, evt):
         ImportCsvDialog()
 
 
 class Canvas(wx.Panel):
     temp_drawing_coords = []
-    def __init__(self, parent):
+    # temp_line = LineString(temp_drawing_coords)
+    # temp_length = temp_line.length
+
+    def __init__(self, parent, layer_and_settings_panel):
         cad_image = wx.Image('Source/Cursors/main_cad_cursor.cur')
         dragging_image = wx.Image('Source/bitmaps/dragging_cursor.cur')
 
         for image in [cad_image, dragging_image]:
             image.SetOption(wx.IMAGE_OPTION_CUR_HOTSPOT_X, 18)
             image.SetOption(wx.IMAGE_OPTION_CUR_HOTSPOT_Y, 18)
+
+        self.properties = layer_and_settings_panel
+
         self.lines_and_points = LinesAndPoints()
         self.DEFAULT_CURSOR = wx.Cursor('Source/bitmaps/base_cursor.cur', type=wx.BITMAP_TYPE_CUR)
         self.CAD_CURSOR = wx.Cursor(cad_image)
         self.DRAGGING_CURSOR = wx.Cursor(dragging_image)
-        #####Drawing default settings#####
-        self.line_color = (0, 0, 0)
-        self.line_style = 'Solid'
-        self.line_width = 0
 
         pub.subscribe(self.draw_data_on_canvas, "draw_data_on_canvas")
         super().__init__(parent=parent)
@@ -288,7 +289,7 @@ class Canvas(wx.Panel):
     def update_cursor(self, evt):
         if RibbonFrame.IsDrawing:
             self.SetCursor(self.CAD_CURSOR)
-            pub.sendMessage("update_info_label", info="Let's draw something nice!")
+            pub.sendMessage("update_info_label", info='Drawing Line...')
         else:
             self.SetCursor(self.DEFAULT_CURSOR)
             pub.sendMessage("update_info_label", info='Nothing is going on.....')
@@ -304,26 +305,47 @@ class Canvas(wx.Panel):
             pub.sendMessage("update_info_label", info='Dragging...')
 
     def drawing(self, evt):
-        if RibbonFrame.IsDrawing and evt.Button(1):
-            temp_drawing = FloatCanvas.Point(evt.Coords, Diameter=3)
+        spaces = ' ' * 20
+        if not RibbonFrame.IsDrawing:  # Function for selecting data
+            print('Selecting data...')
+        elif RibbonFrame.IsDrawing and evt.Button(1):
+            temp_drawing = FloatCanvas.Point(evt.Coords, self.properties.get_color, Diameter=3)
             Canvas.temp_drawing_coords.append(evt.Coords)
+            pub.sendMessage("update_info_label", info=f'Drawing Line...{spaces}Current length: {spaces}'
+                                                      f'Left click to draw, Shift + Right Click to close '
+                                                      f'or Right Click to start new line')
             if len(Canvas.temp_drawing_coords) > 1:
-                temp_line_drawing = FloatCanvas.Line(Canvas.temp_drawing_coords)
+                pub.sendMessage("update_info_label", info=f'Drawing Line...{spaces}Current length: '
+                                                          f'{round (LineString(Canvas.temp_drawing_coords).length, 1)}'
+                                                          f'{spaces}Left click to draw, Shift + Right Click to close or '
+                                                          f'Right Click to start new line')
+                temp_line_drawing = FloatCanvas.Line(Canvas.temp_drawing_coords,
+                                                     self.properties.get_color,
+                                                     self.properties.get_style,
+                                                     self.properties.get_width)
                 self.main_canvas.AddObject(temp_line_drawing)
             self.main_canvas.AddObject(temp_drawing)
             self.main_canvas.Draw(True)
-        elif RibbonFrame.IsDrawing and evt.Button(3) and len(Canvas.temp_drawing_coords) > 1:
+
+        elif RibbonFrame.IsDrawing and evt.Button(3) and evt.ShiftDown() and len(Canvas.temp_drawing_coords) > 2:
             Canvas.temp_drawing_coords.append(Canvas.temp_drawing_coords[0])
-            temp_line_drawing = FloatCanvas.Line(Canvas.temp_drawing_coords)
+            temp_line_drawing = FloatCanvas.Line(Canvas.temp_drawing_coords, self.properties.get_color,
+                                                 self.properties.get_style, self.properties.get_width)
             self.main_canvas.AddObject(temp_line_drawing)
             self.main_canvas.Draw(True)
+            pub.sendMessage("update_info_label",
+                            info=f'Drawing Line...{spaces}Shift + Right Click to close or Right Click to start new line')
+            self.update_lines_and_points()
+        elif RibbonFrame.IsDrawing and evt.Button(3) and len(Canvas.temp_drawing_coords) > 1:
+            pub.sendMessage("update_info_label",
+                            info=f'Drawing Line...{spaces}Shift + Right Click to close or Right Click to start new line')
             self.update_lines_and_points()
 
     def update_lines_and_points(self):
         if Canvas.temp_drawing_coords:
             coordinates = [list(x) for x in Canvas.temp_drawing_coords]
-            self.lines_and_points.add_new_line(False, coordinates, self.line_color, self.line_style,
-                                               self.line_width, self.active_layer)
+            self.lines_and_points.add_new_line(False, coordinates, self.properties.get_color, self.properties.get_style,
+                                               self.properties.get_width, self.active_layer)
             self.lines_and_points.get_info_of_last_object()
             Canvas.temp_drawing_coords = []
 
