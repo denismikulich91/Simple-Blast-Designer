@@ -90,8 +90,12 @@ class LinesAndPoints:
     def is_closed(self, object_id):
         return self.lines_dict[object_id]['closed']
 
+    def get_layer(self, object_id):
+        return self.lines_dict[object_id]['layer']
+
     def get_info_of_last_object(self):
         print(f'Line {self.object_id} has {self.get_color(self.object_id)} color, '
               f'{self.get_style(self.object_id)} style, {self.get_width(self.object_id)}, \n'
-              f'coordinates are: {self.get_coordinates(self.object_id)} closed:{self.is_closed(self.object_id)}')
+              f'coordinates are: {self.get_coordinates(self.object_id)} closed:{self.is_closed(self.object_id)}, \n'
+              f'Layer: {self.get_layer(self.object_id)}')
         

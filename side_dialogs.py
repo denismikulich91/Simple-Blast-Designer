@@ -117,7 +117,7 @@ class LayersAndProperties(wx.Panel):
     def __init__(self, parent):
         super().__init__(parent)
         self.SetBackgroundColour((200, 200, 200))
-        sizer = wx.BoxSizer()
+        sizer = wx.BoxSizer(wx.VERTICAL)
         self.property_table = wxpg.PropertyGrid(self,
                                                style=wxpg.PG_SPLITTER_AUTO_CENTER | wxpg.PG_TOOLBAR)
         self.property_table.Append(wxpg.PropertyCategory('Current drawing settings', name='drawing'))
@@ -144,7 +144,8 @@ class LayersAndProperties(wx.Panel):
                               name='width', values=[0, 1, 2, 3, 4], value=0))
         self.property_table.Append(wxpg.LongStringProperty(label='Comments', name='comments'))
         self.property_table.HideProperty('properties', True)
-        sizer.Add(self.property_table, 1, wx.EXPAND, border=10)
+        sizer.Add(self.property_table, 2, wx.EXPAND, border=10)
+
         self.SetSizer(sizer)
 
     def show_properties(self, show: bool) -> None:
@@ -163,3 +164,24 @@ class LayersAndProperties(wx.Panel):
     def get_width(self):
         return int(self.property_table.GetPropertyValue('d_width'))
 
+
+class LayerManager(wx.Panel):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.SetBackgroundColour((200, 200, 200))
+
+        layer_manager_sizer = wx.BoxSizer(wx.VERTICAL)
+        layer_buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        layer_box = wx.ListBox(self, choices=['1___layer', '2_____layer', '3______layer'])
+        layer_label = wx.StaticText(self, label='Layer manager')
+        layer_buttons_sizer.Add(layer_label, 10, wx.ALIGN_CENTER | wx.LEFT, border=25)
+        add_layer_button = wx.Button(self, size=(25, -1))
+        layer_buttons_sizer.Add(add_layer_button, 1, wx.ALIGN_CENTER, border=0)
+        delete_layer_button = wx.Button(self, size=(25, -1))
+        layer_buttons_sizer.Add(delete_layer_button, 1, wx.ALIGN_CENTER, border=0)
+        hide_layer_button = wx.Button(self, size=(25, -1))
+        layer_buttons_sizer.Add(hide_layer_button, 1, wx.ALIGN_CENTER, border=0)
+
+        layer_manager_sizer.Add(layer_buttons_sizer, 1, wx.EXPAND, 0)
+        layer_manager_sizer.Add(layer_box, 9, wx.ALL | wx.EXPAND, 0)
+        self.SetSizer(layer_manager_sizer)

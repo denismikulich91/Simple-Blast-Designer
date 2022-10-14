@@ -1,5 +1,5 @@
 import wx
-from side_dialogs import ImportCsvDialog, LayersAndProperties
+from side_dialogs import ImportCsvDialog, LayersAndProperties, LayerManager
 from wx.lib.floatcanvas import FloatCanvas, NavCanvas
 import wx.lib.agw.ribbon as rb
 from pubsub import pub
@@ -33,13 +33,19 @@ class MainPanel(wx.Panel):
         self.DEFAULT_CURSOR = wx.Cursor('Source/bitmaps/base_cursor.cur', type=wx.BITMAP_TYPE_CUR)
         self.SetCursor(self.DEFAULT_CURSOR)
         main_sizer = wx.BoxSizer(wx.VERTICAL)
-        self.layer_and_settings_panel = LayersAndProperties(self)
-        self.canvas = Canvas(self, self.layer_and_settings_panel)
+        self.properties_panel = LayersAndProperties(self)
+
+        layer_manager_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.layer_manager = LayerManager(self)
+        
+        layer_manager_sizer.Add(self.properties_panel, 2, wx.EXPAND)
+        layer_manager_sizer.Add(self.layer_manager, 1, wx.EXPAND | wx.TOP, border=5)
+        self.canvas = Canvas(self, self.properties_panel)
         self.info_panel = InfoPanel(self, self.canvas.coordinates, self.canvas.layers, self.canvas.active_layer)
         self.ribbon = RibbonFrame(self, self.canvas)
         canvas_sizer = wx.BoxSizer(wx.HORIZONTAL)
         canvas_sizer.Add(self.canvas, 5,  flag=wx.RIGHT | wx.EXPAND, border=5)
-        canvas_sizer.Add(self.layer_and_settings_panel, 1,  flag=wx.LEFT | wx.RIGHT | wx.EXPAND, border=0)
+        canvas_sizer.Add(layer_manager_sizer, 1,  flag=wx.TOP | wx.EXPAND, border=0)
         main_sizer.Add(self.ribbon, flag=wx.LEFT | wx.RIGHT | wx.TOP | wx.EXPAND, border=10)
         main_sizer.Add(canvas_sizer, 5,  flag=wx.LEFT | wx.RIGHT | wx.EXPAND, border=10)
         main_sizer.Add(self.info_panel,  flag=wx.LEFT | wx.BOTTOM | wx.TOP, border=10)
@@ -213,7 +219,7 @@ class Canvas(wx.Panel):
     # temp_line = LineString(temp_drawing_coords)
     # temp_length = temp_line.length
 
-    def __init__(self, parent, layer_and_settings_panel):
+    def __init__(self, parent, properties_panel):
         cad_image = wx.Image('Source/Cursors/main_cad_cursor.cur')
         dragging_image = wx.Image('Source/bitmaps/dragging_cursor.cur')
 
@@ -221,7 +227,7 @@ class Canvas(wx.Panel):
             image.SetOption(wx.IMAGE_OPTION_CUR_HOTSPOT_X, 18)
             image.SetOption(wx.IMAGE_OPTION_CUR_HOTSPOT_Y, 18)
 
-        self.properties = layer_and_settings_panel
+        self.properties = properties_panel
 
         self.lines_and_points = LinesAndPoints()
         self.DEFAULT_CURSOR = wx.Cursor('Source/bitmaps/base_cursor.cur', type=wx.BITMAP_TYPE_CUR)
