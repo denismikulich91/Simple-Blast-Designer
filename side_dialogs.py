@@ -3,7 +3,7 @@ import wx.propgrid as wxpg
 import os
 from csv_settings import CsvDataHandler
 from pubsub import pub
-
+from small_dialogs import AddLayerDialog
 
 class ImportCsvDialog(wx.Frame):
     def __init__(self):
@@ -168,20 +168,140 @@ class LayersAndProperties(wx.Panel):
 class LayerManager(wx.Panel):
     def __init__(self, parent):
         super().__init__(parent)
+        new_layer = wx.Bitmap('Source/bitmaps/new_layer.png')
+        self.lock_layer = wx.Bitmap('Source/bitmaps/lock_layer.png')
+        self.unlock_layer = wx.Bitmap('Source/bitmaps/unlock_layer.png')
+        self.bulp_off = wx.Bitmap('Source/bitmaps/bulp_off.png')
+        self.bulp_on = wx.Bitmap('Source/bitmaps/bulp_on.png')
+        delete_layer = wx.Bitmap('Source/bitmaps/delete_layer.png')
+
+        self.layer_states = {'temp_layer': {'locked': False, 'hidden': False}}
+        self.active_layer = 'temp_layer'
         self.SetBackgroundColour((200, 200, 200))
 
         layer_manager_sizer = wx.BoxSizer(wx.VERTICAL)
         layer_buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        layer_box = wx.ListBox(self, choices=['1___layer', '2_____layer', '3______layer'])
-        layer_label = wx.StaticText(self, label='Layer manager')
-        layer_buttons_sizer.Add(layer_label, 10, wx.ALIGN_CENTER | wx.LEFT, border=25)
-        add_layer_button = wx.Button(self, size=(25, -1))
-        layer_buttons_sizer.Add(add_layer_button, 1, wx.ALIGN_CENTER, border=0)
-        delete_layer_button = wx.Button(self, size=(25, -1))
+
+        self.layer_box = wx.ListBox(self, choices=list(self.layer_states.keys()), style=wx.LB_OWNERDRAW)
+        self.layer_label = wx.StaticText(self, label=f'Active:   {self.active_layer}')
+        layer_buttons_sizer.Add(self.layer_label, 5, wx.ALIGN_CENTER | wx.LEFT, border=5)
+        self.layer_box.Bind(wx.EVT_LISTBOX_DCLICK, self.set_active_layer)
+        self.layer_box.Bind(wx.EVT_LISTBOX, self.get_layer_states)
+
+        new_layer_button = wx.Button(self, size=(30, 30))
+        new_layer_button.SetBitmap(wx.BitmapBundle(new_layer))
+        self.Bind(wx.EVT_BUTTON, self.add_new_layer, new_layer_button)
+        layer_buttons_sizer.Add(new_layer_button, 1, wx.ALIGN_CENTER, border=0)
+
+        self.hide_layer_button = wx.ToggleButton(self, size=(30, 30))
+        self.hide_layer_button.SetBitmap(wx.BitmapBundle(self.bulp_on))
+        self.hide_layer_button.SetValue(True)
+        self.hide_layer_button.SetBackgroundColour((234, 244, 166))
+        self.Bind(wx.EVT_TOGGLEBUTTON, self.hide_show_layer, self.hide_layer_button)
+        layer_buttons_sizer.Add(self.hide_layer_button, 1, wx.ALIGN_CENTER, border=0)
+
+        self.lock_layer_button = wx.ToggleButton(self, size=(30, 30))
+        self.lock_layer_button.SetBitmap(wx.BitmapBundle(self.unlock_layer))
+        self.Bind(wx.EVT_TOGGLEBUTTON, self.lock_show_layer, self.lock_layer_button)
+        layer_buttons_sizer.Add(self.lock_layer_button, 1, wx.ALIGN_CENTER, border=0)
+
+        delete_layer_button = wx.Button(self, size=(30, 30))
+        delete_layer_button.SetBitmap(wx.BitmapBundle(delete_layer))
+        self.Bind(wx.EVT_BUTTON, self.delete_layer, delete_layer_button)
         layer_buttons_sizer.Add(delete_layer_button, 1, wx.ALIGN_CENTER, border=0)
-        hide_layer_button = wx.Button(self, size=(25, -1))
-        layer_buttons_sizer.Add(hide_layer_button, 1, wx.ALIGN_CENTER, border=0)
 
         layer_manager_sizer.Add(layer_buttons_sizer, 1, wx.EXPAND, 0)
-        layer_manager_sizer.Add(layer_box, 9, wx.ALL | wx.EXPAND, 0)
+        layer_manager_sizer.Add(self.layer_box, 6, wx.ALL | wx.EXPAND, 0)
         self.SetSizer(layer_manager_sizer)
+
+    def hide_show_layer(self, evt):
+        if evt.GetSelection() == 1:
+            self.hide_layer_button.SetBackgroundColour((234, 244, 166))
+            self.hide_layer_button.SetBitmap(wx.BitmapBundle(self.bulp_on))
+            self.layer_states[self.layer_box.GetString(self.layer_box.GetSelection())]['hidden'] = False
+        else:
+            self.hide_layer_button.SetBackgroundColour((225, 225, 225))
+            self.hide_layer_button.SetBitmap(wx.BitmapBundle(self.bulp_off))
+            self.layer_states[self.layer_box.GetString(self.layer_box.GetSelection())]['hidden'] = True
+        print(self.layer_states)
+
+    def lock_show_layer(self, evt):
+        if evt.GetSelection() == 1:
+            self.lock_layer_button.SetBitmap(wx.BitmapBundle(self.lock_layer))
+            self.layer_states[self.layer_box.GetString(self.layer_box.GetSelection())]['locked'] = True
+        else:
+            self.lock_layer_button.SetBitmap(wx.BitmapBundle(self.unlock_layer))
+            self.layer_states[self.layer_box.GetString(self.layer_box.GetSelection())]['locked'] = False
+        print(self.layer_states)
+
+    def add_new_layer(self, evt):
+        AddLayerDialog(None, self.layer_box, self.layer_states)
+
+    def delete_layer(self, evt):  # TODO: Add active layer deletion handler
+        layer = self.layer_box.GetString(self.layer_box.GetSelection())
+        dlg = wx.MessageDialog(self, f'Delete this layer? \n{layer}', 'Are you sure?',
+                               wx.YES_NO | wx.ICON_EXCLAMATION)
+
+        if dlg.ShowModal() == wx.ID_YES:
+            self.layer_states.pop(self.layer_box.GetString(self.layer_box.GetSelection()))
+            self.layer_box.Set(list(self.layer_states.keys()))
+            pub.sendMessage("update_info_label", info=f'Layer {layer} has been deleted')
+
+    def set_active_layer(self, evt):
+        item = evt.GetSelection()
+        font = wx.Font(wx.FontInfo(10).Bold(True))
+        initial_font = wx.Font(wx.FontInfo(9).Bold(False))
+        for line in range(self.layer_box.GetCount()):
+            self.layer_box.SetItemBackgroundColour(line, (225, 225, 225))
+            self.layer_box.SetItemFont(line, initial_font)
+        self.active_layer = self.layer_box.GetString(item)
+        self.layer_label.SetLabel(f'Active:   {self.active_layer}')
+        self.layer_box.SetItemBackgroundColour(item, 'Green')
+        self.layer_box.SetItemFont(item, font)
+        # TODO: find the way to update colors and fonts of the listbox without selection iteration
+        for line in range(self.layer_box.GetCount()):
+            self.layer_box.SetSelection(line)
+        self.layer_box.SetSelection(item)
+        print(self.active_layer)
+
+    def get_layer_states(self, evt):
+        item = evt.GetSelection()
+        if self.layer_states[self.layer_box.GetString(item)]['locked']:
+            self.lock_layer_button.SetValue(1)
+            self.lock_layer_button.SetBitmap(wx.BitmapBundle(self.lock_layer))
+        else:
+            self.lock_layer_button.SetValue(0)
+            self.lock_layer_button.SetBitmap(wx.BitmapBundle(self.unlock_layer))
+
+        if self.layer_states[self.layer_box.GetString(item)]['hidden']:
+            self.hide_layer_button.SetValue(0)
+            self.hide_layer_button.SetBitmap(wx.BitmapBundle(self.bulp_off))
+            self.hide_layer_button.SetBackgroundColour((225, 225, 225))
+        else:
+            self.hide_layer_button.SetValue(1)
+            self.hide_layer_button.SetBitmap(wx.BitmapBundle(self.bulp_on))
+            self.hide_layer_button.SetBackgroundColour((234, 244, 166))
+
+    @property
+    def get_active_layer(self):
+        print(self.active_layer)
+        return self.active_layer
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

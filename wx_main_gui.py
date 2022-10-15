@@ -21,7 +21,6 @@ class MainFrame(wx.Frame):
         self.SetSize(1300, 800)
         self.SetBackgroundColour(wx.Colour(85, 150, 140, 255))
         self.Center()
-
         self.main_panel = MainPanel(self)
         self.Show()
         # self.Maximize(True)
@@ -40,8 +39,9 @@ class MainPanel(wx.Panel):
         
         layer_manager_sizer.Add(self.properties_panel, 2, wx.EXPAND)
         layer_manager_sizer.Add(self.layer_manager, 1, wx.EXPAND | wx.TOP, border=5)
-        self.canvas = Canvas(self, self.properties_panel)
-        self.info_panel = InfoPanel(self, self.canvas.coordinates, self.canvas.layers, self.canvas.active_layer)
+
+        self.canvas = Canvas(self, self.properties_panel, self.layer_manager)
+        self.info_panel = InfoPanel(self, self.canvas.coordinates)
         self.ribbon = RibbonFrame(self, self.canvas)
         canvas_sizer = wx.BoxSizer(wx.HORIZONTAL)
         canvas_sizer.Add(self.canvas, 5,  flag=wx.RIGHT | wx.EXPAND, border=5)
@@ -57,10 +57,8 @@ class MainPanel(wx.Panel):
 
 class InfoPanel(wx.Panel):
 
-    def __init__(self, parent, coordinates, layers, active_layer):
+    def __init__(self, parent, coordinates):
         super().__init__(parent=parent)
-        self.layers = layers + ['1', '2', '3']
-        self.active_layer = active_layer
         pub.subscribe(self.update_coordinates_via_pubsub, "update_coordinates")
         pub.subscribe(self.update_info_label_via_pubsub, "update_info_label")
 
@@ -219,15 +217,13 @@ class Canvas(wx.Panel):
     # temp_line = LineString(temp_drawing_coords)
     # temp_length = temp_line.length
 
-    def __init__(self, parent, properties_panel):
+    def __init__(self, parent, properties_panel, layer_panel):
         cad_image = wx.Image('Source/Cursors/main_cad_cursor.cur')
         dragging_image = wx.Image('Source/bitmaps/dragging_cursor.cur')
 
         for image in [cad_image, dragging_image]:
             image.SetOption(wx.IMAGE_OPTION_CUR_HOTSPOT_X, 18)
             image.SetOption(wx.IMAGE_OPTION_CUR_HOTSPOT_Y, 18)
-
-        self.properties = properties_panel
 
         self.lines_and_points = LinesAndPoints()
         self.DEFAULT_CURSOR = wx.Cursor('Source/bitmaps/base_cursor.cur', type=wx.BITMAP_TYPE_CUR)
@@ -238,8 +234,7 @@ class Canvas(wx.Panel):
         super().__init__(parent=parent)
         self.start = (0, 0)
         canvas_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.layers = ['temp_layer']
-        self.active_layer = self.layers[0]
+
         self.NC = NavCanvas.NavCanvas(self, BackgroundColor="White")
         self.main_canvas = self.NC.Canvas
         self.NC.ToolBar.Destroy()
@@ -254,6 +249,12 @@ class Canvas(wx.Panel):
         self.coordinates = (0, 0)
         canvas_sizer.Add(self.NC, 4, flag=wx.EXPAND, border=10)
         self.SetSizer(canvas_sizer)
+
+        self.properties = properties_panel
+        self.layer_manager_panel = layer_panel
+
+        self.layers = list(self.layer_manager_panel.layer_states.keys())
+
 
     def clear_canvas(self, evt):
         print(self.lines_and_points.lines_dict)
@@ -275,7 +276,8 @@ class Canvas(wx.Panel):
         self.main_canvas.ZoomToBB(NewBB=None, DrawFlag=True)
         self.main_canvas.Draw()
         self.lines_and_points.add_new_line(import_instance.is_multi, import_instance.get_data, data_dict['color'],
-                                           data_dict['style'], data_dict['width'], layer=self.active_layer)
+                                           data_dict['style'], data_dict['width'],
+                                           layer=self.layer_manager_panel.get_active_layer)
 
         # self.lines_and_points.get_info(self.lines_and_points.object_id)
 
@@ -351,7 +353,7 @@ class Canvas(wx.Panel):
         if Canvas.temp_drawing_coords:
             coordinates = [list(x) for x in Canvas.temp_drawing_coords]
             self.lines_and_points.add_new_line(False, coordinates, self.properties.get_color, self.properties.get_style,
-                                               self.properties.get_width, self.active_layer)
+                                               self.properties.get_width, self.layer_manager_panel.get_active_layer)
             self.lines_and_points.get_info_of_last_object()
             Canvas.temp_drawing_coords = []
 
