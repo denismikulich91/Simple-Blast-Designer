@@ -31,12 +31,13 @@ class LinesAndPoints:
         line = LineString(coordinates)
         return line.area
 
-    def _add_new_line(self, coordinates, color, style, width, layer):
+    def _add_new_line(self, coordinates, color, style, width, layer, objects):
         """Used in outer functions, passing all attributes needed
         to create a new item in lines_dict"""
         self.object_id = self.get_unique_id
         self.lines_dict[self.object_id] = {}
         self.lines_dict[self.object_id]['coordinates'] = coordinates
+        self.lines_dict[self.object_id]['objects'] = objects
         self.lines_dict[self.object_id]['color'] = color
         self.lines_dict[self.object_id]['style'] = style
         self.lines_dict[self.object_id]['width'] = width
@@ -46,14 +47,14 @@ class LinesAndPoints:
         self.lines_dict[self.object_id]['area'] = self.get_2d_area(coordinates) if self.lines_dict[self.object_id]['closed'] else 0
         self.lines_dict[self.object_id]['comment'] = ''
 
-    def add_new_line(self, is_multi: bool, coordinates: list | tuple, color: tuple, style: str, width: int, layer: str) -> None:
+    def add_new_line(self, is_multi: bool, coordinates: list | tuple, color: tuple, style: str, width: int, layer: str, objects) -> None:
         """ Does an _add_new_line function but depending on if it is a nested
         list, runs function twice"""
         if is_multi:
             for line in coordinates:
-                self._add_new_line(line, color, style, width, layer)
+                self._add_new_line(line, color, style, width, layer, objects)
         else:
-            self._add_new_line(coordinates, color, style, width, layer)
+            self._add_new_line(coordinates, color, style, width, layer, objects)
 
 
     def close_line(self, object_id: int):

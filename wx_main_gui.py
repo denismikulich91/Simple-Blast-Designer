@@ -36,7 +36,7 @@ class MainPanel(wx.Panel):
 
         layer_manager_sizer = wx.BoxSizer(wx.VERTICAL)
         self.layer_manager = LayerManager(self)
-        
+
         layer_manager_sizer.Add(self.properties_panel, 2, wx.EXPAND)
         layer_manager_sizer.Add(self.layer_manager, 1, wx.EXPAND | wx.TOP, border=5)
 
@@ -225,6 +225,9 @@ class Canvas(wx.Panel):
             image.SetOption(wx.IMAGE_OPTION_CUR_HOTSPOT_X, 18)
             image.SetOption(wx.IMAGE_OPTION_CUR_HOTSPOT_Y, 18)
 
+        self.all_objects_dict = {'temp_layer': {}}
+        self.temp_objects = []
+
         self.lines_and_points = LinesAndPoints()
         self.DEFAULT_CURSOR = wx.Cursor('Source/bitmaps/base_cursor.cur', type=wx.BITMAP_TYPE_CUR)
         self.CAD_CURSOR = wx.Cursor(cad_image)
@@ -255,7 +258,6 @@ class Canvas(wx.Panel):
 
         self.layers = list(self.layer_manager_panel.layer_states.keys())
 
-
     def clear_canvas(self, evt):
         print(self.lines_and_points.lines_dict)
         self.lines_and_points.clear_all()  # TODO: Create a 'are you sure' dialog
@@ -280,7 +282,6 @@ class Canvas(wx.Panel):
                                            layer=self.layer_manager_panel.get_active_layer)
 
         # self.lines_and_points.get_info(self.lines_and_points.object_id)
-
 
     def zoom_all(self, evt):
         self.main_canvas.ZoomToBB(NewBB=None, DrawFlag=True)
@@ -312,16 +313,39 @@ class Canvas(wx.Panel):
             self.initial_coordinates = evt.GetPosition()
             pub.sendMessage("update_info_label", info='Dragging...')
 
+    # TODO: finish connection between LayerManager states and Canvas
+    def hide_show_layer(self, layer, state):
+        if state:
+            for key in self.lines_and_points.lines_dict.keys():
+                if self.lines_and_points.lines_dict[key]['layer'] == layer:
+                    for key in self.all_objects_dict:
+                        for object in self.all_objects_dict[key]:
+                            self.main_canvas.RemoveObject(object)
+
+    def add_new_item_to_all_objects_dict(self, objects, layer, id):
+        if layer in self.all_objects_dict and id in self.all_objects_dict[layer]:
+            self.all_objects_dict[layer][id].append(objects)
+        elif layer in self.all_objects_dict and id not in self.all_objects_dict[layer]:
+            self.all_objects_dict[layer][id] = objects
+        else:
+            self.all_objects_dict[layer] = {id: [objects]}
+
     def drawing(self, evt):
         spaces = ' ' * 20
         if not RibbonFrame.IsDrawing:  # Function for selecting data
             print('Selecting data...')
+        elif RibbonFrame.IsDrawing and evt.Button(1) and \
+                self.layer_manager_panel.get_layer_state(self.layer_manager_panel.get_active_layer)['locked']:
+            dlg = wx.MessageDialog(self, f'Active layer is blocked. Unblock layer for changes', 'Warning',
+                               wx.OK | wx.ICON_EXCLAMATION)
+            dlg.ShowModal()
         elif RibbonFrame.IsDrawing and evt.Button(1):
             temp_drawing = FloatCanvas.Point(evt.Coords, self.properties.get_color, Diameter=3)
             Canvas.temp_drawing_coords.append(evt.Coords)
             pub.sendMessage("update_info_label", info=f'Drawing Line...{spaces}Current length: {spaces}'
                                                       f'Left click to draw, Shift + Right Click to close '
                                                       f'or Right Click to start new line')
+
             if len(Canvas.temp_drawing_coords) > 1:
                 pub.sendMessage("update_info_label", info=f'Drawing Line...{spaces}Current length: '
                                                           f'{round (LineString(Canvas.temp_drawing_coords).length, 1)}'
@@ -331,31 +355,39 @@ class Canvas(wx.Panel):
                                                      self.properties.get_color,
                                                      self.properties.get_style,
                                                      self.properties.get_width)
-                self.main_canvas.AddObject(temp_line_drawing)
-            self.main_canvas.AddObject(temp_drawing)
+                object = self.main_canvas.AddObject(temp_line_drawing)
+                self.temp_objects.append(object)
+            object = self.main_canvas.AddObject(temp_drawing)
+            self.temp_objects.append(object)
             self.main_canvas.Draw(True)
 
         elif RibbonFrame.IsDrawing and evt.Button(3) and evt.ShiftDown() and len(Canvas.temp_drawing_coords) > 2:
             Canvas.temp_drawing_coords.append(Canvas.temp_drawing_coords[0])
             temp_line_drawing = FloatCanvas.Line(Canvas.temp_drawing_coords, self.properties.get_color,
                                                  self.properties.get_style, self.properties.get_width)
-            self.main_canvas.AddObject(temp_line_drawing)
+            object = self.main_canvas.AddObject(temp_line_drawing)
+            self.temp_objects.append(object)
+
             self.main_canvas.Draw(True)
             pub.sendMessage("update_info_label",
                             info=f'Drawing Line...{spaces}Shift + Right Click to close or Right Click to start new line')
-            self.update_lines_and_points()
+            self.update_lines_and_points(self.temp_objects)
         elif RibbonFrame.IsDrawing and evt.Button(3) and len(Canvas.temp_drawing_coords) > 1:
             pub.sendMessage("update_info_label",
                             info=f'Drawing Line...{spaces}Shift + Right Click to close or Right Click to start new line')
-            self.update_lines_and_points()
+            self.update_lines_and_points(self.temp_objects)
 
-    def update_lines_and_points(self):
+    def update_lines_and_points(self, objects):
         if Canvas.temp_drawing_coords:
             coordinates = [list(x) for x in Canvas.temp_drawing_coords]
             self.lines_and_points.add_new_line(False, coordinates, self.properties.get_color, self.properties.get_style,
-                                               self.properties.get_width, self.layer_manager_panel.get_active_layer)
+                                               self.properties.get_width, self.layer_manager_panel.get_active_layer, objects)
             self.lines_and_points.get_info_of_last_object()
+            self.add_new_item_to_all_objects_dict(objects, self.layer_manager_panel.get_active_layer, self.lines_and_points.object_id)
+            print(self.all_objects_dict)
             Canvas.temp_drawing_coords = []
+            self.temp_objects = []
+
 
 
 if __name__ == '__main__':

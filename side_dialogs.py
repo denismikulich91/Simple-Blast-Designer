@@ -5,6 +5,7 @@ from csv_settings import CsvDataHandler
 from pubsub import pub
 from small_dialogs import AddLayerDialog
 
+
 class ImportCsvDialog(wx.Frame):
     def __init__(self):
         super().__init__(None, title='Import CSV')
@@ -219,10 +220,12 @@ class LayerManager(wx.Panel):
             self.hide_layer_button.SetBackgroundColour((234, 244, 166))
             self.hide_layer_button.SetBitmap(wx.BitmapBundle(self.bulp_on))
             self.layer_states[self.layer_box.GetString(self.layer_box.GetSelection())]['hidden'] = False
+            # self.show_data_on_canvas(self.layer_box.GetSelection())
         else:
             self.hide_layer_button.SetBackgroundColour((225, 225, 225))
             self.hide_layer_button.SetBitmap(wx.BitmapBundle(self.bulp_off))
             self.layer_states[self.layer_box.GetString(self.layer_box.GetSelection())]['hidden'] = True
+            # self.hide_data_on_canvas(self.layer_box.GetSelection())
         print(self.layer_states)
 
     def lock_show_layer(self, evt):
@@ -233,6 +236,7 @@ class LayerManager(wx.Panel):
             self.lock_layer_button.SetBitmap(wx.BitmapBundle(self.unlock_layer))
             self.layer_states[self.layer_box.GetString(self.layer_box.GetSelection())]['locked'] = False
         print(self.layer_states)
+
 
     def add_new_layer(self, evt):
         AddLayerDialog(None, self.layer_box, self.layer_states)
@@ -251,18 +255,20 @@ class LayerManager(wx.Panel):
         item = evt.GetSelection()
         font = wx.Font(wx.FontInfo(10).Bold(True))
         initial_font = wx.Font(wx.FontInfo(9).Bold(False))
+
         for line in range(self.layer_box.GetCount()):
             self.layer_box.SetItemBackgroundColour(line, (225, 225, 225))
             self.layer_box.SetItemFont(line, initial_font)
+
         self.active_layer = self.layer_box.GetString(item)
         self.layer_label.SetLabel(f'Active:   {self.active_layer}')
         self.layer_box.SetItemBackgroundColour(item, 'Green')
         self.layer_box.SetItemFont(item, font)
+
         # TODO: find the way to update colors and fonts of the listbox without selection iteration
         for line in range(self.layer_box.GetCount()):
             self.layer_box.SetSelection(line)
         self.layer_box.SetSelection(item)
-        print(self.active_layer)
 
     def get_layer_states(self, evt):
         item = evt.GetSelection()
@@ -284,8 +290,12 @@ class LayerManager(wx.Panel):
 
     @property
     def get_active_layer(self):
-        print(self.active_layer)
         return self.active_layer
+
+    def get_layer_state(self, layer):
+        return self.layer_states[layer]
+
+
 
 
 
