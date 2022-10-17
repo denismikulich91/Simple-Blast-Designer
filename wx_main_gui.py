@@ -203,7 +203,8 @@ class RibbonFrame(wx.Panel):
             self.canvas.SetCursor(self.canvas.CAD_CURSOR)
         else:
             RibbonFrame.IsDrawing = False
-            self.canvas.update_lines_and_points()
+            self.canvas.update_lines_and_points(self.canvas.temp_objects)
+            self.canvas.temp_objects = []
             pub.sendMessage("update_info_label", info='Nothing is going on.....')
             self.canvas.SetCursor(self.canvas.DEFAULT_CURSOR)
 
@@ -227,6 +228,7 @@ class Canvas(wx.Panel):
 
         self.all_objects_dict = {'temp_layer': {}}
         self.temp_objects = []
+        self.hidden_data = {}
 
         self.lines_and_points = LinesAndPoints()
         self.DEFAULT_CURSOR = wx.Cursor('Source/bitmaps/base_cursor.cur', type=wx.BITMAP_TYPE_CUR)
@@ -234,6 +236,8 @@ class Canvas(wx.Panel):
         self.DRAGGING_CURSOR = wx.Cursor(dragging_image)
 
         pub.subscribe(self.draw_data_on_canvas, "draw_data_on_canvas")
+        pub.subscribe(self.hide_show_layer_via_pubsub, "hide_show_layer")
+
         super().__init__(parent=parent)
         self.start = (0, 0)
         canvas_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -255,7 +259,6 @@ class Canvas(wx.Panel):
 
         self.properties = properties_panel
         self.layer_manager_panel = layer_panel
-
         self.layers = list(self.layer_manager_panel.layer_states.keys())
 
     def clear_canvas(self, evt):
@@ -272,15 +275,15 @@ class Canvas(wx.Panel):
         [self.main_canvas.AddObject(x) for x in import_instance.prepare_data_to_draw_in_canvas(
             FloatCanvas.Line, data_dict['color'], data_dict['style'], data_dict['width'])]
 
-        [self.main_canvas.AddObject(x) for x in import_instance.prepare_data_to_draw_in_canvas(
+        self.temp_objects = [self.main_canvas.AddObject(x) for x in import_instance.prepare_data_to_draw_in_canvas(
             FloatCanvas.PointSet, data_dict['color'], 3, data_dict['width'])]
 
         self.main_canvas.ZoomToBB(NewBB=None, DrawFlag=True)
         self.main_canvas.Draw()
         self.lines_and_points.add_new_line(import_instance.is_multi, import_instance.get_data, data_dict['color'],
                                            data_dict['style'], data_dict['width'],
-                                           layer=self.layer_manager_panel.get_active_layer)
-
+                                           layer=self.layer_manager_panel.get_active_layer, objects=self.temp_objects)
+        self.temp_objects = []
         # self.lines_and_points.get_info(self.lines_and_points.object_id)
 
     def zoom_all(self, evt):
@@ -313,14 +316,23 @@ class Canvas(wx.Panel):
             self.initial_coordinates = evt.GetPosition()
             pub.sendMessage("update_info_label", info='Dragging...')
 
-    # TODO: finish connection between LayerManager states and Canvas
-    def hide_show_layer(self, layer, state):
+    def hide_show_layer_via_pubsub(self, layer, state):
         if state:
-            for key in self.lines_and_points.lines_dict.keys():
-                if self.lines_and_points.lines_dict[key]['layer'] == layer:
-                    for key in self.all_objects_dict:
-                        for object in self.all_objects_dict[key]:
-                            self.main_canvas.RemoveObject(object)
+            for key in self.all_objects_dict:
+                if key == layer:
+                    for value in self.all_objects_dict[key]:
+                        self.main_canvas.RemoveObjects(self.all_objects_dict[key][value])
+                    self.hidden_data[layer] = self.all_objects_dict[key]
+            # self.main_canvas.Draw(True)
+            print('hidden: ', self.hidden_data)
+        else:
+            for key in self.hidden_data:
+                if key == layer:
+                    for value in self.all_objects_dict[key]:
+                        self.main_canvas.AddObjects(self.all_objects_dict[key][value])
+                    self.hidden_data[layer] = []
+                    print('hidden: ', self.hidden_data)
+        self.main_canvas.Draw(True)
 
     def add_new_item_to_all_objects_dict(self, objects, layer, id):
         if layer in self.all_objects_dict and id in self.all_objects_dict[layer]:
@@ -328,7 +340,7 @@ class Canvas(wx.Panel):
         elif layer in self.all_objects_dict and id not in self.all_objects_dict[layer]:
             self.all_objects_dict[layer][id] = objects
         else:
-            self.all_objects_dict[layer] = {id: [objects]}
+            self.all_objects_dict[layer] = {id: objects}
 
     def drawing(self, evt):
         spaces = ' ' * 20

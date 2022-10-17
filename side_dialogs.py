@@ -216,17 +216,21 @@ class LayerManager(wx.Panel):
         self.SetSizer(layer_manager_sizer)
 
     def hide_show_layer(self, evt):
+        selected_layer = self.layer_box.GetString(self.layer_box.GetSelection())
         if evt.GetSelection() == 1:
             self.hide_layer_button.SetBackgroundColour((234, 244, 166))
             self.hide_layer_button.SetBitmap(wx.BitmapBundle(self.bulp_on))
-            self.layer_states[self.layer_box.GetString(self.layer_box.GetSelection())]['hidden'] = False
+            self.layer_states[selected_layer]['hidden'] = False
             # self.show_data_on_canvas(self.layer_box.GetSelection())
+            pub.sendMessage("hide_show_layer", layer=selected_layer, state=False)
         else:
             self.hide_layer_button.SetBackgroundColour((225, 225, 225))
             self.hide_layer_button.SetBitmap(wx.BitmapBundle(self.bulp_off))
-            self.layer_states[self.layer_box.GetString(self.layer_box.GetSelection())]['hidden'] = True
+            self.layer_states[selected_layer]['hidden'] = True
             # self.hide_data_on_canvas(self.layer_box.GetSelection())
+            pub.sendMessage("hide_show_layer", layer=selected_layer, state=True)
         print(self.layer_states)
+        evt.Skip()
 
     def lock_show_layer(self, evt):
         if evt.GetSelection() == 1:
