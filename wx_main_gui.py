@@ -4,8 +4,6 @@ from wx.lib.floatcanvas import FloatCanvas, NavCanvas
 import wx.lib.agw.ribbon as rb
 from pubsub import pub
 from shapely.geometry import LineString
-import os
-from csv_settings import CsvDataHandler
 from lines_and_points import LinesAndPoints
 
 # Buttons IDs
@@ -262,20 +260,27 @@ class Canvas(wx.Panel):
         self.layers = list(self.layer_manager_panel.layer_states.keys())
 
     def clear_canvas(self, evt):
-        print(self.lines_and_points.lines_dict)
-        self.lines_and_points.clear_all()  # TODO: Create a 'are you sure' dialog
+        dlg = wx.MessageDialog(self, f'Are you sure? All unsaved data will be lost', 'Clear Canvas?',
+                               wx.YES_NO | wx.ICON_EXCLAMATION)
 
-        # Not sure if this needed when I can achieve permanent link between canvas and Lines and Points dict
-        self.main_canvas.ClearAll(evt)
-        self.main_canvas.Update()
-        self.main_canvas.ZoomToBB(NewBB=None, DrawFlag=True)
-        print(self.lines_and_points.lines_dict)
+        if dlg.ShowModal() == wx.ID_YES:
+            print(self.lines_and_points.lines_dict)
+            self.lines_and_points.clear_all()  # TODO: Create a 'are you sure' dialog
+            self.all_objects_dict = {'temp_layer': {}}
+            self.temp_objects = []
+            self.hidden_data = {}
+            self.layer_manager_panel.clear_all()
+            # Not sure if this needed when I can achieve permanent link between canvas and Lines and Points dict
+            self.main_canvas.ClearAll(evt)
+            self.main_canvas.Update()
+            self.main_canvas.ZoomToBB(NewBB=None, DrawFlag=True)
+            print(self.lines_and_points.lines_dict)
 
     def draw_data_on_canvas(self, import_instance, data_dict):  # Imported CSV data!!!!
-        [self.main_canvas.AddObject(x) for x in import_instance.prepare_data_to_draw_in_canvas(
+        self.temp_objects = [self.main_canvas.AddObject(x) for x in import_instance.prepare_data_to_draw_in_canvas(
             FloatCanvas.Line, data_dict['color'], data_dict['style'], data_dict['width'])]
 
-        self.temp_objects = [self.main_canvas.AddObject(x) for x in import_instance.prepare_data_to_draw_in_canvas(
+        self.temp_objects += [self.main_canvas.AddObject(x) for x in import_instance.prepare_data_to_draw_in_canvas(
             FloatCanvas.PointSet, data_dict['color'], 3, data_dict['width'])]
 
         self.main_canvas.ZoomToBB(NewBB=None, DrawFlag=True)
@@ -283,6 +288,8 @@ class Canvas(wx.Panel):
         self.lines_and_points.add_new_line(import_instance.is_multi, import_instance.get_data, data_dict['color'],
                                            data_dict['style'], data_dict['width'],
                                            layer=self.layer_manager_panel.get_active_layer, objects=self.temp_objects)
+        self.add_new_item_to_all_objects_dict(self.temp_objects, self.layer_manager_panel.get_active_layer, self.lines_and_points.object_id)
+        print(self.temp_objects)
         self.temp_objects = []
         # self.lines_and_points.get_info(self.lines_and_points.object_id)
 
@@ -316,15 +323,16 @@ class Canvas(wx.Panel):
             self.initial_coordinates = evt.GetPosition()
             pub.sendMessage("update_info_label", info='Dragging...')
 
-    def hide_show_layer_via_pubsub(self, layer, state):
+    def hide_show_layer_via_pubsub(self, layer, state, delete):
         if state:
             for key in self.all_objects_dict:
                 if key == layer:
                     for value in self.all_objects_dict[key]:
                         self.main_canvas.RemoveObjects(self.all_objects_dict[key][value])
-                    self.hidden_data[layer] = self.all_objects_dict[key]
-            # self.main_canvas.Draw(True)
-            print('hidden: ', self.hidden_data)
+                    if not delete:
+                        self.hidden_data[layer] = self.all_objects_dict[key]
+            print('check')
+
         else:
             for key in self.hidden_data:
                 if key == layer:
@@ -342,10 +350,31 @@ class Canvas(wx.Panel):
         else:
             self.all_objects_dict[layer] = {id: objects}
 
+    def RectGotHitLeft(self, evt, object_id):
+        print(object_id)
+        self.properties.set_property_table(object_id, self.lines_and_points.lines_dict[object_id])
+        # print(single_object)
+        self.properties.show_properties(False)
+        print(self.all_objects_dict['temp_layer'][object_id])
+        print('check')
+
     def drawing(self, evt):
         spaces = ' ' * 20
         if not RibbonFrame.IsDrawing:  # Function for selecting data
-            print('Selecting data...')
+            # TODO: Gets only last object!!!!!
+            self.properties.show_properties(True)
+            self.main_canvas.MakeHitDict()
+            # for value, key in self.all_objects_dict[self.layer_manager_panel.get_active_layer].items():
+            #     print(value)
+            #     for single_object in key:
+            #         single_object.Bind(FloatCanvas.EVT_FC_LEFT_DOWN,
+            #                            lambda event: self.RectGotHitLeft(evt, value))
+                    # break
+
+                # for single_object in key:
+                #     single_object.Bind(FloatCanvas.EVT_FC_LEFT_DOWN,
+                #                        lambda event: self.RectGotHitLeft(evt, value, single_object))
+
         elif RibbonFrame.IsDrawing and evt.Button(1) and \
                 self.layer_manager_panel.get_layer_state(self.layer_manager_panel.get_active_layer)['locked']:
             dlg = wx.MessageDialog(self, f'Active layer is blocked. Unblock layer for changes', 'Warning',
@@ -399,7 +428,6 @@ class Canvas(wx.Panel):
             print(self.all_objects_dict)
             Canvas.temp_drawing_coords = []
             self.temp_objects = []
-
 
 
 if __name__ == '__main__':
