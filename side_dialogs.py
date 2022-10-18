@@ -122,7 +122,7 @@ class LayersAndProperties(wx.Panel):
         self.property_table = wxpg.PropertyGrid(self,
                                                style=wxpg.PG_SPLITTER_AUTO_CENTER | wxpg.PG_TOOLBAR)
         self.property_table.Append(wxpg.PropertyCategory('Current drawing settings', name='drawing'))
-        self.property_table.Append(wxpg.ColourProperty(label='Color', name='d_color', value=wx.BLACK))
+        self.property_table.Append(wxpg.ColourProperty(label='Color', name='d_color', value=wx.BLUE))
         self.property_table.Append(wxpg.EnumProperty(label='Style', labels=['Solid', 'Dashed', 'Dotted', 'Dash-Dotted'],
                                                      name='d_style', values=[0, 1, 2, 3]))
         self.property_table.Append(wxpg.EnumProperty(label='Width', labels=['Thin', 'Not so thin', 'Rather thick', 'Rather fat', 'Fat'],
@@ -165,6 +165,19 @@ class LayersAndProperties(wx.Panel):
     def get_width(self):
         return int(self.property_table.GetPropertyValue('d_width'))
 
+    def set_property_table(self, object_id, object_dict):
+        # TODO: Area does not calculating
+        self.property_table.ChangePropertyValue('id', object_id)
+        self.property_table.ChangePropertyValue('coordinates', str(object_dict['coordinates']))
+        self.property_table.ChangePropertyValue('length', object_dict['2d_length'])
+        self.property_table.ChangePropertyValue('area', object_dict['area'])
+        self.property_table.ChangePropertyValue('closed', object_dict['closed'])
+        # self.property_table.ChangePropertyValue('id', object_id)
+        # self.property_table.ChangePropertyValue('id', object_id)
+
+
+
+
 
 class LayerManager(wx.Panel):
     def __init__(self, parent):
@@ -176,8 +189,12 @@ class LayerManager(wx.Panel):
         self.bulp_on = wx.Bitmap('Source/bitmaps/bulp_on.png')
         delete_layer = wx.Bitmap('Source/bitmaps/delete_layer.png')
 
+        self.font = wx.Font(wx.FontInfo(10).Bold(True))
+        self.initial_font = wx.Font(wx.FontInfo(9).Bold(False))
+
         self.layer_states = {'temp_layer': {'locked': False, 'hidden': False}}
         self.active_layer = 'temp_layer'
+
         self.SetBackgroundColour((200, 200, 200))
 
         layer_manager_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -188,6 +205,8 @@ class LayerManager(wx.Panel):
         layer_buttons_sizer.Add(self.layer_label, 5, wx.ALIGN_CENTER | wx.LEFT, border=5)
         self.layer_box.Bind(wx.EVT_LISTBOX_DCLICK, self.set_active_layer)
         self.layer_box.Bind(wx.EVT_LISTBOX, self.get_layer_states)
+        self.layer_box.SetItemBackgroundColour(0, 'Green')
+        self.layer_box.SetItemFont(0, self.font)
 
         new_layer_button = wx.Button(self, size=(30, 30))
         new_layer_button.SetBitmap(wx.BitmapBundle(new_layer))
@@ -222,13 +241,13 @@ class LayerManager(wx.Panel):
             self.hide_layer_button.SetBitmap(wx.BitmapBundle(self.bulp_on))
             self.layer_states[selected_layer]['hidden'] = False
             # self.show_data_on_canvas(self.layer_box.GetSelection())
-            pub.sendMessage("hide_show_layer", layer=selected_layer, state=False)
+            pub.sendMessage("hide_show_layer", layer=selected_layer, state=False, delete=False)
         else:
             self.hide_layer_button.SetBackgroundColour((225, 225, 225))
             self.hide_layer_button.SetBitmap(wx.BitmapBundle(self.bulp_off))
             self.layer_states[selected_layer]['hidden'] = True
             # self.hide_data_on_canvas(self.layer_box.GetSelection())
-            pub.sendMessage("hide_show_layer", layer=selected_layer, state=True)
+            pub.sendMessage("hide_show_layer", layer=selected_layer, state=True, delete=False)
         print(self.layer_states)
         evt.Skip()
 
@@ -241,33 +260,41 @@ class LayerManager(wx.Panel):
             self.layer_states[self.layer_box.GetString(self.layer_box.GetSelection())]['locked'] = False
         print(self.layer_states)
 
-
     def add_new_layer(self, evt):
         AddLayerDialog(None, self.layer_box, self.layer_states)
 
     def delete_layer(self, evt):  # TODO: Add active layer deletion handler
         layer = self.layer_box.GetString(self.layer_box.GetSelection())
-        dlg = wx.MessageDialog(self, f'Delete this layer? \n{layer}', 'Are you sure?',
-                               wx.YES_NO | wx.ICON_EXCLAMATION)
+        if self.layer_box.GetCount() <= 1:
+            dlg = wx.MessageDialog(self, f'You need at least one layer!', 'Warning',
+                                   wx.OK | wx.ICON_EXCLAMATION)
+            dlg.ShowModal()
+        else:
+            dlg = wx.MessageDialog(self, f'Delete this layer? \n{layer}', 'Are you sure?',
+                                   wx.YES_NO | wx.ICON_EXCLAMATION)
 
-        if dlg.ShowModal() == wx.ID_YES:
-            self.layer_states.pop(self.layer_box.GetString(self.layer_box.GetSelection()))
-            self.layer_box.Set(list(self.layer_states.keys()))
-            pub.sendMessage("update_info_label", info=f'Layer {layer} has been deleted')
+            if dlg.ShowModal() == wx.ID_YES:
+                self.layer_states.pop(self.layer_box.GetString(self.layer_box.GetSelection()))
+                self.layer_box.Set(list(self.layer_states.keys()))
+                pub.sendMessage("update_info_label", info=f'Layer {layer} has been deleted')
+                pub.sendMessage("hide_show_layer", layer=layer, state=True, delete=True)
+                if layer == self.active_layer:
+                    self.layer_label.SetLabel(f'Active:   {self.layer_box.GetString(0)}')
+                    self.layer_box.SetItemBackgroundColour(0, 'Green')
+                    self.layer_box.SetItemFont(0, self.font)
+                    self.active_layer = self.layer_box.GetString(0)
+                    print(self.get_active_layer)
 
     def set_active_layer(self, evt):
         item = evt.GetSelection()
-        font = wx.Font(wx.FontInfo(10).Bold(True))
-        initial_font = wx.Font(wx.FontInfo(9).Bold(False))
-
         for line in range(self.layer_box.GetCount()):
             self.layer_box.SetItemBackgroundColour(line, (225, 225, 225))
-            self.layer_box.SetItemFont(line, initial_font)
+            self.layer_box.SetItemFont(line, self.initial_font)
 
         self.active_layer = self.layer_box.GetString(item)
         self.layer_label.SetLabel(f'Active:   {self.active_layer}')
         self.layer_box.SetItemBackgroundColour(item, 'Green')
-        self.layer_box.SetItemFont(item, font)
+        self.layer_box.SetItemFont(item, self.font)
 
         # TODO: find the way to update colors and fonts of the listbox without selection iteration
         for line in range(self.layer_box.GetCount()):
@@ -298,6 +325,13 @@ class LayerManager(wx.Panel):
 
     def get_layer_state(self, layer):
         return self.layer_states[layer]
+
+    def clear_all(self):
+        self.layer_box.Set(['temp_layer'])
+        self.layer_states = {'temp_layer': {'locked': False, 'hidden': False}}
+        self.active_layer = 'temp_layer'
+        self.layer_box.SetItemBackgroundColour(0, 'Green')
+        self.layer_box.SetItemFont(0, self.font)
 
 
 
