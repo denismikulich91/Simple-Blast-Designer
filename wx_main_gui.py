@@ -156,7 +156,8 @@ class RibbonFrame(wx.Panel):
         label_font = wx.Font(8, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_LIGHT)
         self._bitmap_creation_dc.SetFont(label_font)
 
-        design_tools = rb.RibbonPage(self._ribbon, wx.ID_ANY, "Design", wx.ArtProvider.GetBitmap(wx.ART_PRINT, wx.ART_OTHER, wx.Size(16, 15)))
+        design_tools = rb.RibbonPage(self._ribbon, wx.ID_ANY, "Design",
+                                     wx.ArtProvider.GetBitmap(wx.ART_PRINT, wx.ART_OTHER, wx.Size(16, 15)))
         import_tools_panel = rb.RibbonPanel(design_tools, wx.ID_ANY, "Import Tools", wx.NullBitmap, wx.DefaultPosition,
                                             wx.DefaultSize, agwStyle=rb.RIBBON_PANEL_NO_AUTO_MINIMISE)
         import_tools = rb.RibbonToolBar(import_tools_panel)
@@ -183,10 +184,10 @@ class RibbonFrame(wx.Panel):
         s.Add(self._ribbon, 1,  wx.EXPAND, border=0)
         self._ribbon.Realize()
         self.SetSizer(s)
-        self.BindEvents(import_tools, toolbar, design_tools)
+        self.bind_events(import_tools, toolbar, design_tools)
         self.Show()
 
-    def BindEvents(self, import_tools, toolbar, design_tools):
+    def bind_events(self, import_tools, toolbar, design_tools):
         import_tools.Bind(rb.EVT_RIBBONTOOLBAR_CLICKED, self.import_csv_button, id=ID_IMPORT_CSV)
         toolbar.Bind(rb.EVT_RIBBONTOOLBAR_CLICKED, self.canvas.clear_canvas,  id=ID_CLEAR_ALL)
         design_tools.Bind(rb.EVT_RIBBONTOOLBAR_CLICKED, self.check, id=ID_DRAW)
@@ -213,8 +214,6 @@ class RibbonFrame(wx.Panel):
 
 class Canvas(wx.Panel):
     temp_drawing_coords = []
-    # temp_line = LineString(temp_drawing_coords)
-    # temp_length = temp_line.length
 
     def __init__(self, parent, properties_panel, layer_panel):
         cad_image = wx.Image('Source/Cursors/main_cad_cursor.cur')
@@ -274,7 +273,6 @@ class Canvas(wx.Panel):
             self.main_canvas.ClearAll(evt)
             self.main_canvas.Update()
             self.main_canvas.ZoomToBB(NewBB=None, DrawFlag=True)
-            print(self.lines_and_points.lines_dict)
 
     def draw_data_on_canvas(self, import_instance, data_dict):  # Imported CSV data!!!!
         self.temp_objects = [self.main_canvas.AddObject(x) for x in import_instance.prepare_data_to_draw_in_canvas(
@@ -331,7 +329,6 @@ class Canvas(wx.Panel):
                         self.main_canvas.RemoveObjects(self.all_objects_dict[key][value])
                     if not delete:
                         self.hidden_data[layer] = self.all_objects_dict[key]
-            print('check')
 
         else:
             for key in self.hidden_data:
@@ -342,43 +339,36 @@ class Canvas(wx.Panel):
                     print('hidden: ', self.hidden_data)
         self.main_canvas.Draw(True)
 
-    def add_new_item_to_all_objects_dict(self, objects, layer, id):
-        if layer in self.all_objects_dict and id in self.all_objects_dict[layer]:
-            self.all_objects_dict[layer][id].append(objects)
-        elif layer in self.all_objects_dict and id not in self.all_objects_dict[layer]:
-            self.all_objects_dict[layer][id] = objects
+    def add_new_item_to_all_objects_dict(self, objects, layer, object_id):
+        if layer in self.all_objects_dict and object_id in self.all_objects_dict[layer]:
+            self.all_objects_dict[layer][object_id].append(objects)
+        elif layer in self.all_objects_dict and object_id not in self.all_objects_dict[layer]:
+            self.all_objects_dict[layer][object_id] = objects
         else:
-            self.all_objects_dict[layer] = {id: objects}
+            self.all_objects_dict[layer] = {object_id: objects}
 
-    def RectGotHitLeft(self, evt, object_id):
-        print(object_id)
-        self.properties.set_property_table(object_id, self.lines_and_points.lines_dict[object_id])
-        # print(single_object)
-        self.properties.show_properties(False)
-        print(self.all_objects_dict['temp_layer'][object_id])
-        print('check')
+    def show_object_properties(self, evt):
+        for layer in self.all_objects_dict:
+            for key,  value in self.all_objects_dict[layer].items():
+                if evt in value:
+                    self.properties.set_property_table(key, self.lines_and_points.lines_dict[key])
+                    self.properties.show_properties(False)
 
     def drawing(self, evt):
         spaces = ' ' * 20
-        if not RibbonFrame.IsDrawing:  # Function for selecting data
-            # TODO: Gets only last object!!!!!
+        # Function for selecting data
+        if not RibbonFrame.IsDrawing and evt.Button(1) and \
+                len(self.all_objects_dict[self.layer_manager_panel.get_active_layer]) > 0:
             self.properties.show_properties(True)
             self.main_canvas.MakeHitDict()
-            # for value, key in self.all_objects_dict[self.layer_manager_panel.get_active_layer].items():
-            #     print(value)
-            #     for single_object in key:
-            #         single_object.Bind(FloatCanvas.EVT_FC_LEFT_DOWN,
-            #                            lambda event: self.RectGotHitLeft(evt, value))
-                    # break
-
-                # for single_object in key:
-                #     single_object.Bind(FloatCanvas.EVT_FC_LEFT_DOWN,
-                #                        lambda event: self.RectGotHitLeft(evt, value, single_object))
+            for value, key in self.all_objects_dict[self.layer_manager_panel.get_active_layer].items():
+                for single_object in key:
+                    single_object.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, self.show_object_properties)
 
         elif RibbonFrame.IsDrawing and evt.Button(1) and \
                 self.layer_manager_panel.get_layer_state(self.layer_manager_panel.get_active_layer)['locked']:
             dlg = wx.MessageDialog(self, f'Active layer is blocked. Unblock layer for changes', 'Warning',
-                               wx.OK | wx.ICON_EXCLAMATION)
+                                   wx.OK | wx.ICON_EXCLAMATION)
             dlg.ShowModal()
         elif RibbonFrame.IsDrawing and evt.Button(1):
             temp_drawing = FloatCanvas.Point(evt.Coords, self.properties.get_color, Diameter=3)
@@ -396,18 +386,18 @@ class Canvas(wx.Panel):
                                                      self.properties.get_color,
                                                      self.properties.get_style,
                                                      self.properties.get_width)
-                object = self.main_canvas.AddObject(temp_line_drawing)
-                self.temp_objects.append(object)
-            object = self.main_canvas.AddObject(temp_drawing)
-            self.temp_objects.append(object)
+                canvas_object = self.main_canvas.AddObject(temp_line_drawing)
+                self.temp_objects.append(canvas_object)
+            canvas_object = self.main_canvas.AddObject(temp_drawing)
+            self.temp_objects.append(canvas_object)
             self.main_canvas.Draw(True)
 
         elif RibbonFrame.IsDrawing and evt.Button(3) and evt.ShiftDown() and len(Canvas.temp_drawing_coords) > 2:
             Canvas.temp_drawing_coords.append(Canvas.temp_drawing_coords[0])
             temp_line_drawing = FloatCanvas.Line(Canvas.temp_drawing_coords, self.properties.get_color,
                                                  self.properties.get_style, self.properties.get_width)
-            object = self.main_canvas.AddObject(temp_line_drawing)
-            self.temp_objects.append(object)
+            canvas_object = self.main_canvas.AddObject(temp_line_drawing)
+            self.temp_objects.append(canvas_object)
 
             self.main_canvas.Draw(True)
             pub.sendMessage("update_info_label",
@@ -418,13 +408,15 @@ class Canvas(wx.Panel):
                             info=f'Drawing Line...{spaces}Shift + Right Click to close or Right Click to start new line')
             self.update_lines_and_points(self.temp_objects)
 
-    def update_lines_and_points(self, objects):
+    def update_lines_and_points(self, canvas_objects):
         if Canvas.temp_drawing_coords:
             coordinates = [list(x) for x in Canvas.temp_drawing_coords]
             self.lines_and_points.add_new_line(False, coordinates, self.properties.get_color, self.properties.get_style,
-                                               self.properties.get_width, self.layer_manager_panel.get_active_layer, objects)
+                                               self.properties.get_width, self.layer_manager_panel.get_active_layer,
+                                               canvas_objects)
             self.lines_and_points.get_info_of_last_object()
-            self.add_new_item_to_all_objects_dict(objects, self.layer_manager_panel.get_active_layer, self.lines_and_points.object_id)
+            self.add_new_item_to_all_objects_dict(canvas_objects, self.layer_manager_panel.get_active_layer,
+                                                  self.lines_and_points.object_id)
             print(self.all_objects_dict)
             Canvas.temp_drawing_coords = []
             self.temp_objects = []
