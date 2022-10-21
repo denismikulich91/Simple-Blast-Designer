@@ -1,4 +1,4 @@
-from shapely.geometry import LineString
+from shapely.geometry import LineString, Polygon
 
 
 class LinesAndPoints:
@@ -28,7 +28,8 @@ class LinesAndPoints:
     
     @staticmethod
     def get_2d_area(coordinates: list) -> float:
-        line = LineString(coordinates)
+        line = Polygon(coordinates)
+        print(line.area)
         return line.area
 
     def _add_new_line(self, coordinates, color, style, width, layer, objects):
@@ -56,7 +57,6 @@ class LinesAndPoints:
         else:
             self._add_new_line(coordinates, color, style, width, layer, objects)
 
-
     def close_line(self, object_id: int):
         """Creates one more point with coordinates same as first point's"""
         self.lines_dict[object_id]['coordinates'].append(self.lines_dict[object_id]['coordinates'][0])
@@ -72,6 +72,9 @@ class LinesAndPoints:
 
     def change_line_width(self, object_id, new_width):
         self.lines_dict[object_id]['style'] = new_width
+
+    def change_comment(self, object_id, new_comment):
+        self.lines_dict[object_id]['comment'] = new_comment
 
     def clear_all(self):
         self.lines_dict = {}

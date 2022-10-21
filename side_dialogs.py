@@ -152,6 +152,10 @@ class LayersAndProperties(wx.Panel):
     def show_properties(self, show: bool) -> None:
         self.property_table.HideProperty('properties', show)
 
+    #  TODO: write properties update function
+    def property_changed(self):
+        pass
+
     @property
     def get_color(self):
         return self.property_table.GetPropertyValue('d_color')[:-1]
@@ -165,8 +169,11 @@ class LayersAndProperties(wx.Panel):
     def get_width(self):
         return int(self.property_table.GetPropertyValue('d_width'))
 
+    @property
+    def get_comment(self):
+        return self.property_table.GetPropertyValue('comments')
+
     def set_property_table(self, object_id, object_dict):
-        # TODO: Area does not calculating
         style_dict = {'Solid': 0, 'LongDash': 1, 'Dot': 2, 'DotDash': 3}
         self.property_table.ChangePropertyValue('id', object_id)
         self.property_table.ChangePropertyValue('coordinates', str(object_dict['coordinates']))
@@ -177,6 +184,7 @@ class LayersAndProperties(wx.Panel):
         self.property_table.ChangePropertyValue('style', style_dict[object_dict['style']])
         self.property_table.ChangePropertyValue('width', object_dict['width'])
         self.property_table.ChangePropertyValue('comments', object_dict['comment'])
+
 
 class LayerManager(wx.Panel):
     def __init__(self, parent):

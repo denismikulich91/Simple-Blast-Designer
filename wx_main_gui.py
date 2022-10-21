@@ -360,7 +360,7 @@ class Canvas(wx.Panel):
         if not RibbonFrame.IsDrawing and evt.Button(1) and \
                 len(self.all_objects_dict[self.layer_manager_panel.get_active_layer]) > 0:
             self.properties.show_properties(True)
-            self.main_canvas.MakeHitDict()
+
             for value, key in self.all_objects_dict[self.layer_manager_panel.get_active_layer].items():
                 for single_object in key:
                     single_object.Bind(FloatCanvas.EVT_FC_LEFT_DOWN, self.show_object_properties)
