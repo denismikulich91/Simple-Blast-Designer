@@ -105,4 +105,6 @@ class LinesAndPoints:
               f'{self.get_style(self.object_id)} style, {self.get_width(self.object_id)}, \n'
               f'coordinates are: {self.get_coordinates(self.object_id)} closed:{self.is_closed(self.object_id)}, \n'
               f'Layer: {self.get_layer(self.object_id)}, area: {self.get_area(self.object_id)}')
-        
+
+
+

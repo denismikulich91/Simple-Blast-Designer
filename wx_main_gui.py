@@ -5,6 +5,7 @@ import wx.lib.agw.ribbon as rb
 from pubsub import pub
 from shapely.geometry import LineString
 from lines_and_points import LinesAndPoints
+import wx.propgrid as wxpg
 
 # Buttons IDs
 ID_IMPORT_CSV = wx.ID_HIGHEST + 1
@@ -226,6 +227,7 @@ class Canvas(wx.Panel):
         self.all_objects_dict = {'temp_layer': {}}
         self.temp_objects = []
         self.hidden_data = {}
+        self.canvas_selection = None
 
         self.lines_and_points = LinesAndPoints()
         self.DEFAULT_CURSOR = wx.Cursor('Source/bitmaps/base_cursor.cur', type=wx.BITMAP_TYPE_CUR)
@@ -257,6 +259,11 @@ class Canvas(wx.Panel):
         self.properties = properties_panel
         self.layer_manager_panel = layer_panel
         self.layers = list(self.layer_manager_panel.layer_states.keys())
+        self.properties.Bind(wxpg.EVT_PG_CHANGING, self.change_properties)
+
+    def change_properties(self, evt):
+        pass
+
 
     def clear_canvas(self, evt):
         dlg = wx.MessageDialog(self, f'Are you sure? All unsaved data will be lost', 'Clear Canvas?',
@@ -264,7 +271,7 @@ class Canvas(wx.Panel):
 
         if dlg.ShowModal() == wx.ID_YES:
             print(self.lines_and_points.lines_dict)
-            self.lines_and_points.clear_all()  # TODO: Create a 'are you sure' dialog
+            self.lines_and_points.clear_all()
             self.all_objects_dict = {'temp_layer': {}}
             self.temp_objects = []
             self.hidden_data = {}
@@ -353,6 +360,7 @@ class Canvas(wx.Panel):
                 if evt in value:
                     self.properties.set_property_table(key, self.lines_and_points.lines_dict[key])
                     self.properties.show_properties(False)
+                    self.canvas_selection = key
 
     def drawing(self, evt):
         spaces = ' ' * 20

@@ -143,7 +143,7 @@ class LayersAndProperties(wx.Panel):
         self.property_table.Append(
             wxpg.EnumProperty(label='Width', labels=['Thin', 'Not so thin', 'Rather thick', 'Rather fat', 'Fat'],
                               name='width', values=[0, 1, 2, 3, 4], value=0))
-        self.property_table.Append(wxpg.LongStringProperty(label='Comments', name='comments'))
+        self.property_table.Append(wxpg.LongStringProperty(label='Comments', name='comment'))
         self.property_table.HideProperty('properties', True)
         sizer.Add(self.property_table, 2, wx.EXPAND, border=10)
 
@@ -151,10 +151,6 @@ class LayersAndProperties(wx.Panel):
 
     def show_properties(self, show: bool) -> None:
         self.property_table.HideProperty('properties', show)
-
-    #  TODO: write properties update function
-    def property_changed(self):
-        pass
 
     @property
     def get_color(self):
@@ -171,7 +167,7 @@ class LayersAndProperties(wx.Panel):
 
     @property
     def get_comment(self):
-        return self.property_table.GetPropertyValue('comments')
+        return self.property_table.GetPropertyValue('comment')
 
     def set_property_table(self, object_id, object_dict):
         style_dict = {'Solid': 0, 'LongDash': 1, 'Dot': 2, 'DotDash': 3}
@@ -183,7 +179,7 @@ class LayersAndProperties(wx.Panel):
         self.property_table.ChangePropertyValue('color', object_dict['color'])
         self.property_table.ChangePropertyValue('style', style_dict[object_dict['style']])
         self.property_table.ChangePropertyValue('width', object_dict['width'])
-        self.property_table.ChangePropertyValue('comments', object_dict['comment'])
+        self.property_table.ChangePropertyValue('comment', object_dict['comment'])
 
 
 class LayerManager(wx.Panel):
