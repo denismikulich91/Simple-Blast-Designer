@@ -4,6 +4,7 @@ import os
 from csv_settings import CsvDataHandler
 from pubsub import pub
 from small_dialogs import AddLayerDialog
+from lines_and_points import LinesAndPoints
 
 
 class ImportCsvDialog(wx.Frame):
@@ -180,7 +181,6 @@ class LayersAndProperties(wx.Panel):
         self.property_table.ChangePropertyValue('style', style_dict[object_dict['style']])
         self.property_table.ChangePropertyValue('width', object_dict['width'])
         self.property_table.ChangePropertyValue('comment', object_dict['comment'])
-
 
 class LayerManager(wx.Panel):
     def __init__(self, parent):

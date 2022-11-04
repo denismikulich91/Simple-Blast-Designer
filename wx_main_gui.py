@@ -259,11 +259,32 @@ class Canvas(wx.Panel):
         self.properties = properties_panel
         self.layer_manager_panel = layer_panel
         self.layers = list(self.layer_manager_panel.layer_states.keys())
-        self.properties.Bind(wxpg.EVT_PG_CHANGING, self.change_properties)
+        self.properties.Bind(wxpg.EVT_PG_CHANGED, self.change_properties)
 
     def change_properties(self, evt):
-        pass
-
+        object_id = self.properties.property_table.GetPropertyValue('id')
+        if evt.GetPropertyName() == 'color' and self.canvas_selection is not None:
+            self.lines_and_points.lines_dict[object_id]['color'] = evt.GetPropertyValue()
+            for canvas_object in self.lines_and_points.lines_dict[object_id]['objects']:
+                if isinstance(canvas_object, FloatCanvas.Line):
+                    FloatCanvas.Line.SetColor(canvas_object, tuple(evt.GetPropertyValue()))
+                elif isinstance(canvas_object, FloatCanvas.Point):
+                    FloatCanvas.Point.SetColor(canvas_object, tuple(evt.GetPropertyValue()))
+        elif evt.GetPropertyName() == 'width' and self.canvas_selection is not None:
+            self.lines_and_points.lines_dict[object_id]['width'] = evt.GetPropertyValue()
+            for canvas_object in self.lines_and_points.lines_dict[object_id]['objects']:
+                if isinstance(canvas_object, FloatCanvas.Line):
+                    FloatCanvas.Line.SetLineWidth(canvas_object, evt.GetPropertyValue())
+        elif evt.GetPropertyName() == 'style' and self.canvas_selection is not None:
+            line_type_selections = {0: 'Solid', 1: 'LongDash', 2: 'Dot', 3: 'DotDash'}
+            self.lines_and_points.lines_dict[object_id]['style'] = line_type_selections[evt.GetPropertyValue()]
+            for canvas_object in self.lines_and_points.lines_dict[object_id]['objects']:
+                if isinstance(canvas_object, FloatCanvas.Line):
+                    FloatCanvas.Line.SetLineStyle(canvas_object, line_type_selections[evt.GetPropertyValue()])
+        elif evt.GetPropertyName() == 'comment' and self.canvas_selection is not None:
+            self.lines_and_points.lines_dict[object_id]['comment'] = evt.GetPropertyValue()
+        self.main_canvas.Zoom(1 - 0.001)  # Can't update color on the fly just by Draw or Update method
+        self.main_canvas.Zoom(1 + 0.001)
 
     def clear_canvas(self, evt):
         dlg = wx.MessageDialog(self, f'Are you sure? All unsaved data will be lost', 'Clear Canvas?',
@@ -309,6 +330,9 @@ class Canvas(wx.Panel):
 
     def get_initial_coordinates(self, evt):
         self.initial_coordinates = evt.GetPosition()
+        if evt.ShiftDown():
+            # Rotation matrix functionality
+            pass
 
     def update_cursor(self, evt):
         if RibbonFrame.IsDrawing:
@@ -361,6 +385,7 @@ class Canvas(wx.Panel):
                     self.properties.set_property_table(key, self.lines_and_points.lines_dict[key])
                     self.properties.show_properties(False)
                     self.canvas_selection = key
+                    print(f'Key = {key}')
 
     def drawing(self, evt):
         spaces = ' ' * 20
