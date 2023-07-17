@@ -6,6 +6,7 @@
 #### - Canvas Panning
 #### - Ribbon tool set
 #### - Surpac strings import (.str)
+#### - CSV import
 #### - Polylines and polygons drawing, visual settings set up in the properties window
 #### - Layer managment
 #### - Clear all
