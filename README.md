@@ -1,5 +1,5 @@
 # Simple blast designer
-### 100% python based CAD tool planned to eventually become a drill andb blast design tool. GUI done by wxPython library.
+### 100% python based CAD tool planned to eventually become a drill and blast design tool. GUI done by wxPython library.
 
 ### Currently it supports following functionality:
 #### - Canvas Zoom in / Zoom out
